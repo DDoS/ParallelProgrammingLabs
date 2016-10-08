@@ -1,9 +1,13 @@
 #include <omp.h>
 
-void transform(unsigned char *image, unsigned width, unsigned height, unsigned threadCount) {
+void transform(unsigned char **image, unsigned *width, unsigned *height, unsigned threadCount) {
+    unsigned char *imageIn = *image;
+    unsigned widthIn = *width;
+    unsigned heightIn = *height;
+    // Parallelize the for loop
     #pragma omp parallel for num_threads(threadCount)
-    for (unsigned i = 0; i < width * height * 4; i += 4) {
-        unsigned char *p = image + i;
+    for (unsigned i = 0; i < widthIn * heightIn * 4; i += 4) {
+        unsigned char *p = imageIn + i;
         // Modify each component of each pixel, except alpha
         for (unsigned j = 0; j < 3; j++) {
             unsigned char *c = p + j;

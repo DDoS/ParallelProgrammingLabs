@@ -4,7 +4,7 @@
 #include "lodepng.h"
 
 // This method is implemented by rectify.c, pool.c and convolve.c
-void transform(unsigned char *image, unsigned width, unsigned height, unsigned threadCount);
+void transform(unsigned char **image, unsigned *width, unsigned *height, unsigned threadCount);
 
 int main(int argc, char *argv[]) {
     // Check for the command line argument
@@ -32,7 +32,7 @@ int main(int argc, char *argv[]) {
         printf("Error when loading the input image: %s\n", lodepng_error_text(readError));
     }
     // Apply rectification
-    transform(image, width, height, threadCount);
+    transform(&image, &width, &height, threadCount);
     // Save the results
     unsigned outputError = lodepng_encode32_file(outputName, image, width, height);
     if (outputError) {
