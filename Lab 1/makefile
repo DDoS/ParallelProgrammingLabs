@@ -11,22 +11,44 @@ CCFLAGS = -std=c99
 
 OPEN_MP = -fopenmp
 
-default: rectify
+default: rectify pool convolve
 
+# compile lodepng
 lodepng.o: lodepng.c lodepng.h
 	$(CC) $(CCFLAGS) -c lodepng.c
 
-rectify.o: rectify.c lodepng.h
+# compile transform without the implementation
+transform.o: transform.c lodepng.h
+	$(CC) $(CCFLAGS) -c transform.c
+
+# compile the implementations of transform
+rectify.o: rectify.c
 	$(CC) $(CCFLAGS) $(OPEN_MP) -c rectify.c
 
-rectify: lodepng.o rectify.o
-	$(CC) $(CCFLAGS) $(OPEN_MP) -o rectify lodepng.o rectify.o
+pool.o: pool.c
+	$(CC) $(CCFLAGS) $(OPEN_MP) -c pool.c
 
+convolve.o: convolve.c
+	$(CC) $(CCFLAGS) $(OPEN_MP) -c convolve.c
+
+# create and executable for each transform
+rectify: rectify.o transform.o lodepng.o
+	$(CC) $(CCFLAGS) $(OPEN_MP) -o rectify lodepng.o transform.o rectify.o
+
+pool: pool.o transform.o lodepng.o
+	$(CC) $(CCFLAGS) $(OPEN_MP) -o pool lodepng.o transform.o pool.o
+
+convolve: convolve.o transform.o lodepng.o
+	$(CC) $(CCFLAGS) $(OPEN_MP) -o convolve lodepng.o transform.o convolve.o
+
+# compile the equality test
 test_equality: test_equality.c lodepng.o
 	$(CC) $(CCFLAGS) -o test_equality test_equality.c lodepng.o
 
+# clean the compilation output
 clean:
-	rm -f lodepng.o
-	rm -f rectify.o
+	rm -f *.o
 	rm -f rectify
+	rm -f pool
+	rm -f convolve
 	rm -f test_equality
