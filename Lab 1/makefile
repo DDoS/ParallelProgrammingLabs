@@ -11,7 +11,7 @@ CCFLAGS = -std=c99
 
 OPEN_MP = -fopenmp
 
-default: rectify pool convolve
+default: rectify pool convolve test_equality
 
 # compile lodepng
 lodepng.o: lodepng.c lodepng.h
