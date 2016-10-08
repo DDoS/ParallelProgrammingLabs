@@ -34,3 +34,7 @@
 
 # Project executables
 rectify
+test_equality
+
+# Project input/output
+*.png
