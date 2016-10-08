@@ -43,7 +43,7 @@ convolve: convolve.o transform.o lodepng.o
 
 # compile the equality test
 test_equality: test_equality.c lodepng.o
-	$(CC) $(CCFLAGS) -o test_equality test_equality.c lodepng.o
+	$(CC) $(CCFLAGS) -lm -o test_equality test_equality.c lodepng.o
 
 # clean the compilation output
 clean:
