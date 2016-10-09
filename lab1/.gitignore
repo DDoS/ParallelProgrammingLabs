@@ -1,0 +1,3 @@
+# Project input/output
+*.png
+!report/*.png
