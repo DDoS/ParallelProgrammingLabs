@@ -1,7 +1,7 @@
 UNAME := $(shell uname)
 ifeq ($(UNAME), Darwin)
 	# Because "gcc" on macOS is actually Clang which doesn't support "-fopenmp"
-	# Define the C compiler to actually be GCC (which must be installed)
+	# Define the C compiler to actually be GCC (which must be installed separately)
     CC = gcc-6
 else
 	CC = gcc

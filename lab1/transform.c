@@ -29,7 +29,7 @@ int main(int argc, char *argv[]) {
     if (readError) {
         printf("Error when loading the input image: %s\n", lodepng_error_text(readError));
     }
-    // Apply rectification
+    // Apply transformation
     transform(&image, &width, &height, threadCount);
     // Save the results
     unsigned outputError = lodepng_encode32_file(outputName, image, width, height);
