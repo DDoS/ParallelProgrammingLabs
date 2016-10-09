@@ -1,6 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#ifdef __MACH__
+#define MACH_TIMING
+#endif // __MACH__
+
+#ifdef MACH_TIMING
+#include <mach/mach_time.h>
+#endif // MACH_TIMING
+
 #include "lodepng.h"
 #include "transform.h"
 
@@ -29,8 +37,21 @@ int main(int argc, char *argv[]) {
     if (readError) {
         printf("Error when loading the input image: %s\n", lodepng_error_text(readError));
     }
+    // Get the start time
+#ifdef MACH_TIMING
+    uint64_t start = mach_absolute_time();
+#endif // MACH_TIMING
     // Apply transformation
     transform(&image, &width, &height, threadCount);
+    // Get the end time and print the delta in seconds
+#ifdef MACH_TIMING
+    uint64_t end = mach_absolute_time();
+    uint64_t elapsed = end - start;
+    mach_timebase_info_data_t sTimebaseInfo;
+    mach_timebase_info(&sTimebaseInfo);
+    uint64_t elapsedNano = elapsed * sTimebaseInfo.numer / sTimebaseInfo.denom;
+    printf("took about %.5f seconds\n", 1e-9 * elapsedNano);
+#endif // MACH_TIMING
     // Save the results
     unsigned outputError = lodepng_encode32_file(outputName, image, width, height);
     if (outputError) {
