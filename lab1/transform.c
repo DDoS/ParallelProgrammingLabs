@@ -2,9 +2,7 @@
 #include <stdlib.h>
 
 #include "lodepng.h"
-
-// This method is implemented by rectify.c, pool.c and convolve.c
-void transform(unsigned char **image, unsigned *width, unsigned *height, unsigned threadCount);
+#include "transform.h"
 
 int main(int argc, char *argv[]) {
     // Check for the command line argument

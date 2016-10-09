@@ -1,5 +1,7 @@
 #include <omp.h>
 
+#include "transform.h"
+
 void transform(unsigned char **image, unsigned *width, unsigned *height, unsigned threadCount) {
     unsigned char *imageIn = *image;
     unsigned widthIn = *width;

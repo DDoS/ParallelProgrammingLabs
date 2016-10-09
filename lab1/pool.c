@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <omp.h>
 
+#include "transform.h"
+
 #define POOL_SIZE 2
 
 void transform(unsigned char **image, unsigned *width, unsigned *height, unsigned threadCount) {

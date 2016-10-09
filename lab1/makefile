@@ -18,17 +18,17 @@ lodepng.o: lodepng.c lodepng.h
 	$(CC) $(CCFLAGS) -c lodepng.c
 
 # compile transform without the implementation
-transform.o: transform.c lodepng.h
+transform.o: transform.c transform.h lodepng.h
 	$(CC) $(CCFLAGS) -c transform.c
 
 # compile the implementations of transform
-rectify.o: rectify.c
+rectify.o: rectify.c transform.h
 	$(CC) $(CCFLAGS) $(OPEN_MP) -c rectify.c
 
-pool.o: pool.c
+pool.o: pool.c transform.h
 	$(CC) $(CCFLAGS) $(OPEN_MP) -c pool.c
 
-convolve.o: convolve.c
+convolve.o: convolve.c transform.h wm.h
 	$(CC) $(CCFLAGS) $(OPEN_MP) -c convolve.c
 
 # create and executable for each transform
