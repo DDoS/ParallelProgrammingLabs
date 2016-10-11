@@ -39,9 +39,9 @@ void transform(unsigned char **image, unsigned *width, unsigned *height, unsigne
 			unsigned char *line = currentSubMatrix + y * widthIn;
             for (unsigned x = 0; x < WEIGHTED_MATRIX_WIDTH * 4; x+=4) {
 				unsigned char *pixel = line + x;
-                addition[0] += pixel[0] + w[y/4][x/4];
-                addition[1] += pixel[1] + w[y/4][x/4];
-                addition[2] += pixel[2] + w[y/4][x/4];
+                addition[0] += pixel[0] * w[x/4][y/4];
+                addition[1] += pixel[1] * w[x/4][y/4];
+                addition[2] += pixel[2] * w[x/4][y/4];
 			}
         }	
 
