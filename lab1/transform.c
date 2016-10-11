@@ -1,13 +1,14 @@
-#include <stdio.h>
-#include <stdlib.h>
-
 #ifdef __MACH__
 #define MACH_TIMING
 #endif // __MACH__
 
 #ifdef __unix__
 #define POSIX_TIMING
+#define _POSIX_C_SOURCE 199309L
 #endif // __unix__
+
+#include <stdio.h>
+#include <stdlib.h>
 
 #ifdef MACH_TIMING
 #include <mach/mach_time.h>
@@ -48,7 +49,7 @@ int main(int argc, char *argv[]) {
     uint64_t start = mach_absolute_time();
 #elif defined(POSIX_TIMING)
     struct timespec start;
-    clock_gettime(CLOCK_MONOTONIC, &tstart);
+    clock_gettime(CLOCK_MONOTONIC, &start);
 #endif // MACH_TIMING
     // Apply transformation
     transform(&image, &width, &height, threadCount);
