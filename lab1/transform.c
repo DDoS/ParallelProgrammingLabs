@@ -5,8 +5,14 @@
 #define MACH_TIMING
 #endif // __MACH__
 
+#ifdef __unix__
+#define POSIX_TIMING
+#endif // __unix__
+
 #ifdef MACH_TIMING
 #include <mach/mach_time.h>
+#elif defined(POSIX_TIMING)
+#include <time.h>
 #endif // MACH_TIMING
 
 #include "lodepng.h"
@@ -40,18 +46,26 @@ int main(int argc, char *argv[]) {
     // Get the start time
 #ifdef MACH_TIMING
     uint64_t start = mach_absolute_time();
+#elif defined(POSIX_TIMING)
+    struct timespec start;
+    clock_gettime(CLOCK_MONOTONIC, &tstart);
 #endif // MACH_TIMING
     // Apply transformation
     transform(&image, &width, &height, threadCount);
-    // Get the end time and print the delta in seconds
+    // Get the end time and delta in seconds
 #ifdef MACH_TIMING
     uint64_t end = mach_absolute_time();
     uint64_t elapsed = end - start;
-    mach_timebase_info_data_t sTimebaseInfo;
-    mach_timebase_info(&sTimebaseInfo);
-    uint64_t elapsedNano = elapsed * sTimebaseInfo.numer / sTimebaseInfo.denom;
-    printf("took about %.5f seconds\n", 1e-9 * elapsedNano);
+    mach_timebase_info_data_t timebaseInfo;
+    mach_timebase_info(&timebaseInfo);
+    double elapsedNano = elapsed * timebaseInfo.numer / timebaseInfo.denom;
+#elif defined(POSIX_TIMING)
+    struct timespec end;
+    clock_gettime(CLOCK_MONOTONIC, &end);
+    double elapsedNano = 1e9 * end.tv_sec + end.tv_nsec - 1e9 * start.tv_sec - start.tv_nsec;
 #endif // MACH_TIMING
+    // Print the time taken
+    printf("took about %.5f seconds\n", 1e-9 * elapsedNano);
     // Save the results
     unsigned outputError = lodepng_encode32_file(outputName, image, width, height);
     if (outputError) {
