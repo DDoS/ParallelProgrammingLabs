@@ -32,24 +32,33 @@ void transform(unsigned char **image, unsigned *width, unsigned *height, unsigne
 		unsigned xSubMatrix = subMatrixIndex % widthOut;
         unsigned ySubMatrix = subMatrixIndex / widthOut;
 		
-		unsigned char *currentSubMatrix = imageIn + (xSubMatrix * WEIGHTED_MATRIX_WIDTH +  ySubMatrix *  widthIn) * 4;
-		int addition = 0;
+		unsigned char *currentSubMatrix = imageIn + (xSubMatrix * WEIGHTED_MATRIX_WIDTH +  ySubMatrix * widthIn) * 4;
+		unsigned char addition[4] = {0,0,0,255};
 		
-        for (unsigned x = 0; x < WEIGHTED_MATRIX_WIDTH; x++) {
-			for (unsigned y = 0; y < WEIGHTED_MATRIX_HEIGHT; y++) {
-				addition += *(currentSubMatrix + (x + (y * widthIn)) * 4) * w[x][y];
+        for (unsigned y = 0; y < WEIGHTED_MATRIX_WIDTH * 4; y+=4) {
+			unsigned char *line = currentSubMatrix + y * widthIn;
+            for (unsigned x = 0; x < WEIGHTED_MATRIX_WIDTH * 4; x+=4) {
+				unsigned char *pixel = line + x;
+                addition[0] += pixel[0] + w[y/4][x/4];
+                addition[1] += pixel[1] + w[y/4][x/4];
+                addition[2] += pixel[2] + w[y/4][x/4];
 			}
         }	
-		if (addition <= 0){
-			addition = 0;
-		}
-		else if (addition >= 255){
-			addition = 255;
-        }
 
-		unsigned char additionConverted = addition + '0';
+        for (int pixelIndex = 0; pixelIndex < 4; pixelIndex++){
+		    if (addition[pixelIndex] <= 0){
+			    addition[pixelIndex] = 0;
+		    }
+		    else if (addition[pixelIndex] >= 255){
+			    addition[pixelIndex] = 255;
+            }
+        }
 		
-		*(imageOut + (xSubMatrix + ySubMatrix * widthOut) * 4)  = additionConverted;
+        unsigned char* pixel = imageOut + subMatrixIndex * 4;
+		pixel[0] = addition[0];
+        pixel[1] = addition[1];
+        pixel[2] = addition[2];
+        pixel[3] = addition[3];
 		
     }
     // Delete the input image
