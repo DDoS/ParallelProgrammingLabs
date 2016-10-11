@@ -12,8 +12,8 @@ void transform(unsigned char **image, unsigned *width, unsigned *height, unsigne
     unsigned heightIn = *height;
 	
 	//Calculate the output width and height
-	unsigned widthOut = *width - (WEIGHTED_MATRIX_WIDTH - 1);
-    unsigned heightOut = *height - (WEIGHTED_MATRIX_HEIGHT - 1);
+	unsigned widthOut = widthIn - (WEIGHTED_MATRIX_WIDTH - 1);
+    unsigned heightOut = heightIn - (WEIGHTED_MATRIX_HEIGHT - 1);
 	
 	//Calculate the number of sub matrix in the main matrix
 	unsigned totalSubMatrices = widthOut * heightOut;
@@ -32,25 +32,24 @@ void transform(unsigned char **image, unsigned *width, unsigned *height, unsigne
 		unsigned xSubMatrix = subMatrixIndex % widthOut;
         unsigned ySubMatrix = subMatrixIndex / widthOut;
 		
-		unsigned char *currentSubMatrix = imageIn + (xSubMatrix * WEIGHTED_MATRIX_WIDTH +  ySubMatrix * widthIn) * 4;
+		unsigned char *currentSubMatrix = imageIn + (xSubMatrix * WEIGHTED_MATRIX_WIDTH +  ySubMatrix *  widthIn) * 4;
 		int addition = 0;
 		
         for (unsigned x = 0; x < WEIGHTED_MATRIX_WIDTH; x++) {
 			for (unsigned y = 0; y < WEIGHTED_MATRIX_HEIGHT; y++) {
-				addition += *(currentSubMatrix + (x * 4)) * w[x][y];
+				addition += *(currentSubMatrix + (x + (y * widthIn)) * 4) * w[x][y];
 			}
-        }
-		
+        }	
 		if (addition <= 0){
 			addition = 0;
 		}
 		else if (addition >= 255){
 			addition = 255;
-		}
-		
+        }
+
 		unsigned char additionConverted = addition + '0';
 		
-		*(imageOut + xSubMatrix + ySubMatrix * widthOut)  = additionConverted;
+		*(imageOut + (xSubMatrix + ySubMatrix * widthOut) * 4)  = additionConverted;
 		
     }
     // Delete the input image
