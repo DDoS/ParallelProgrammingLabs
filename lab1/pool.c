@@ -25,7 +25,7 @@ void transform(unsigned char **image, unsigned *width, unsigned *height, unsigne
     // Parallelize the for loop
     #pragma omp parallel for num_threads(threadCount)
     for (unsigned poolIndex = 0; poolIndex < poolCount; poolIndex++) {
-        // Calculate the pool coordinates
+        // Calculate the pool coordinates in the output image
         unsigned xPool = poolIndex % widthOut;
         unsigned yPool = poolIndex / widthOut;
         // Calculate the pool top left pixel in the input image
@@ -52,7 +52,7 @@ void transform(unsigned char **image, unsigned *width, unsigned *height, unsigne
         pixel[0] = maxR;
         pixel[1] = maxG;
         pixel[2] = maxB;
-        pixel[3] = 255;
+        pixel[3] = 0xFF;
     }
     // Delete the input image
     free(imageIn);
