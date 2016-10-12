@@ -33,7 +33,7 @@ void transform(unsigned char **image, unsigned *width, unsigned *height, unsigne
         unsigned ySubMatrix = subMatrixIndex / widthOut;
 		
 		unsigned char *currentSubMatrix = imageIn + (xSubMatrix * WEIGHTED_MATRIX_WIDTH +  ySubMatrix * widthIn) * 4;
-		unsigned char addition[4] = {0,0,0,255};
+		unsigned char addition[3] = {0,0,0};
 		
         for (unsigned y = 0; y < WEIGHTED_MATRIX_WIDTH * 4; y+=4) {
 			unsigned char *line = currentSubMatrix + y * widthIn;
@@ -45,7 +45,7 @@ void transform(unsigned char **image, unsigned *width, unsigned *height, unsigne
 			}
         }	
 
-        for (int pixelIndex = 0; pixelIndex < 4; pixelIndex++){
+        for (int pixelIndex = 0; pixelIndex < 3; pixelIndex++){
 		    if (addition[pixelIndex] <= 0){
 			    addition[pixelIndex] = 0;
 		    }
@@ -58,7 +58,7 @@ void transform(unsigned char **image, unsigned *width, unsigned *height, unsigne
 		pixel[0] = addition[0];
         pixel[1] = addition[1];
         pixel[2] = addition[2];
-        pixel[3] = addition[3];
+        pixel[3] = 255;
 		
     }
     // Delete the input image
