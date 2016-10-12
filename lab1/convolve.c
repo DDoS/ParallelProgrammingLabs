@@ -3,63 +3,61 @@
 #include <omp.h>
 #include "wm.h"
 
-#define WEIGHTED_MATRIX_WIDTH  3
-#define WEIGHTED_MATRIX_HEIGHT  3
+unsigned char toUnsignedCharSaturated(float v) {
+    if (v < 0) {
+        return 0;
+    }
+    if (v > 0xFF) {
+        return 0xFF;
+    }
+    return (char) v;
+}
 
 void transform(unsigned char **image, unsigned *width, unsigned *height, unsigned threadCount) {
+    // Original image
     unsigned char *imageIn = *image;
     unsigned widthIn = *width;
     unsigned heightIn = *height;
-
-    //Calculate the output width and height
-    unsigned widthOut = widthIn - (WEIGHTED_MATRIX_WIDTH - 1);
-    unsigned heightOut = heightIn - (WEIGHTED_MATRIX_HEIGHT - 1);
-
-    //Calculate the number of sub matrix in the main matrix
-    unsigned totalSubMatrices = widthOut * heightOut;
-
-    //Create output image
-    unsigned char *imageOut = malloc(sizeof(unsigned char) * totalSubMatrices * 4);
+    // Calculate the output width and height, this is integer math so "i / 2 * 2" isn't redundant
+    unsigned padding = WEIGHT_MATRIX_SIZE / 2;
+    unsigned widthOut = widthIn - padding * 2;
+    unsigned heightOut = heightIn - padding * 2;
+    // There is one sum per pixel in the output image
+    unsigned sumCount = widthOut * heightOut;
+    // Allocate the output image
+    unsigned char *imageOut = malloc(sizeof(unsigned char) * sumCount * 4);
     if (imageOut == NULL) {
         printf("Could not allocate new image\n");
         exit(-1);
     }
-
     // Parallelize the for loop
     #pragma omp parallel for num_threads(threadCount)
-    for (unsigned subMatrixIndex = 0; subMatrixIndex < totalSubMatrices; subMatrixIndex++) {
-
-        unsigned xSubMatrix = subMatrixIndex % widthOut;
-        unsigned ySubMatrix = subMatrixIndex / widthOut;
-
-        unsigned char *currentSubMatrix = imageIn + (xSubMatrix * WEIGHTED_MATRIX_WIDTH +  ySubMatrix * widthIn) * 4;
-        unsigned char addition[3] = {0,0,0};
-
-        for (unsigned y = 0; y < WEIGHTED_MATRIX_WIDTH * 4; y+=4) {
-            unsigned char *line = currentSubMatrix + y * widthIn;
-            for (unsigned x = 0; x < WEIGHTED_MATRIX_WIDTH * 4; x+=4) {
-                unsigned char *pixel = line + x;
-                addition[0] += pixel[0] * w[x/4][y/4];
-                addition[1] += pixel[1] * w[x/4][y/4];
-                addition[2] += pixel[2] * w[x/4][y/4];
+    for (unsigned sumIndex = 0; sumIndex < sumCount; sumIndex++) {
+        // Calculate the sum coordinates in the output image
+        unsigned xSum = sumIndex % widthOut;
+        unsigned ySum = sumIndex / widthOut;
+        // Calculate the sum top left pixel in the input image
+        unsigned char *sum = imageIn + (xSum + ySum * widthIn) * 4;
+        // Calculate the weighted component sums in the original image
+        float sumR = 0, sumG = 0, sumB = 0;
+        for (unsigned y = 0; y < WEIGHT_MATRIX_SIZE; y++) {
+            unsigned char *line = sum + y * widthIn * 4;
+            float *weightLine = weightMatrix[y];
+            for (unsigned x = 0; x < WEIGHT_MATRIX_SIZE; x++) {
+                unsigned char *pixel = line + x * 4;
+                float weight = weightLine[x];
+                sumR += pixel[0] * weight;
+                sumG += pixel[1] * weight;
+                sumB += pixel[2] * weight;
             }
         }
-
-        for (int pixelIndex = 0; pixelIndex < 3; pixelIndex++){
-            if (addition[pixelIndex] <= 0){
-                addition[pixelIndex] = 0;
-            }
-            else if (addition[pixelIndex] >= 255){
-                addition[pixelIndex] = 255;
-            }
-        }
-
-        unsigned char* pixel = imageOut + subMatrixIndex * 4;
-        pixel[0] = addition[0];
-        pixel[1] = addition[1];
-        pixel[2] = addition[2];
-        pixel[3] = 255;
-
+        // Calculate the output image pixel
+        unsigned char* pixel = imageOut + sumIndex * 4;
+        // Set the weighted sums in the output image
+        pixel[0] = toUnsignedCharSaturated(sumR);
+        pixel[1] = toUnsignedCharSaturated(sumG);
+        pixel[2] = toUnsignedCharSaturated(sumB);
+        pixel[3] = 0xFF;
     }
     // Delete the input image
     free(imageIn);
