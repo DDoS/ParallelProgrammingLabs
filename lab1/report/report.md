@@ -1,7 +1,7 @@
 # Report
 
 Aleksi Sapon-Cousineau - 260581670  
-Samuel Cauchon - XXXXXXXXX
+Samuel Cauchon - 260587509
 
 ## 1. Rectification
 
@@ -80,13 +80,16 @@ Parallelization was achieved using OpenMP, using `#pragma omp parallel for num_t
 |16          |0.07476       |
 |32          |0.081016      |
 
-The graph shows that there is a considerable improvement of the speedup from 1 thread to 4 threads. However, past 4 threads, the performance of the operation diminishes, and so does the speedup. Since this experiment was conducted on the school's server, we may have not been able to access to the all the 6 CPUs, which is why the performance drops at a lower thread count. Again, the heading added to each thread is another reason why the performance drops. Although the performance starts to drop past 4 threads, the magnitude of the speedup is bigger than any other transformation. This can be explained by the fact that the convolution is more parallelizable than rectification and pooling.
+The graph shows that there is a considerable improvement of the speedup from 1 thread to 4 threads. However, past 4 threads, the performance of the operation diminishes, and so does the speedup. Since this experiment was conducted on the school's server, we may have not been able to access to the all the 6 CPUs, which is why the performance drops at a lower thread count. Again, the heading added to each thread is another reason why the performance drops. Although the performance starts to drop past 4 threads, the magnitude of the speedup is bigger than the other transformations.
 
 ![Speedup plot](ConvolveSpeedup.png)
+
 The speedup factor (relative to 1 thread) for each thread count.
 
 ![Input image](BeforeConvolve.png)
+
 The input image used for the convolution performance tests.
 
 ![Output image](AfterConvolve.png)
+
 The output image from the convolution performance tests.
