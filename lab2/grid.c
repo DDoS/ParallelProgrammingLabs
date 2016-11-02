@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include <math.h>
 
 #include "grid.h"
@@ -14,6 +15,29 @@ void calculateBlockLayout(unsigned blocks, unsigned *rows, unsigned *cols) {
     *rows = s;
     // We get the column count from the row count
     *cols = blocks / s;
+}
+
+Block createBlock(unsigned blocks, unsigned process) {
+    // First calculate the number of rows and columns
+    unsigned rows;
+    unsigned cols;
+    calculateBlockLayout(blocks, &rows, &cols);
+    // Now calculate the size of the block for the process
+    unsigned blockRows = N / rows;
+    unsigned blockCols = N / cols;
+    // Then calculate the block coordinates, in block space
+    unsigned i = process % rows;
+    unsigned j = process / rows;
+    // If the process is the last row, assign it any extra rows
+    if (i + 1 == rows) {
+        blockRows += N % rows;
+    }
+    // If the process is the last column, assign it any extra columns
+    if (j + 1 == cols) {
+        blockCols += N % cols;
+    }
+    Block block = {.i = i, .j = j, .rows = blockRows, .cols = blockCols, .nodes = NULL};
+    return block;
 }
 
 /*

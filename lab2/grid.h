@@ -3,3 +3,13 @@ typedef struct {
     double u1;
     double u2;
 } Node;
+
+typedef struct {
+    unsigned i;
+    unsigned j;
+    unsigned rows;
+    unsigned cols;
+    Node *nodes;
+} Block;
+
+Block createBlock(unsigned blocks, unsigned process);
