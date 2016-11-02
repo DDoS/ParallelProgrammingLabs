@@ -1,3 +1,9 @@
+# Project executables
+rectify
+pool
+convolve
+test_equality
+
 # Project input/output
 *.png
 !report/*.png
