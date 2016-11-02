@@ -36,7 +36,46 @@ Block createBlock(unsigned blocks, unsigned process) {
     if (j + 1 == cols) {
         blockCols += N % cols;
     }
-    Block block = {.i = i, .j = j, .rows = blockRows, .cols = blockCols, .nodes = NULL};
+    // Allocate nodes for the block
+    Node *nodes = malloc(blockRows * blockCols);
+    // Create the grid block
+    Block block = {
+        .i = i, .j = j, .rows = blockRows, .cols = blockCols, .nodes = nodes, .comNodes = NULL
+    };
+    // If the block shares a boundary, then we add extra nodes
+    // to represent the overlap with another process
+    unsigned comNodeCount = 0;
+    if (i + 1 < rows) {
+        // Need to communicate with above
+        comNodeCount += blockRows;
+        block.boundaries[0] = 1;
+    } else {
+        block.boundaries[0] = 0;
+    }
+    if (j + 1 < cols) {
+        // Need to communicate with right
+        comNodeCount += blockCols;
+        block.boundaries[1] = 1;
+    } else {
+        block.boundaries[1] = 0;
+    }
+    if (i > 0) {
+        // Need to communicate with below
+        comNodeCount += blockRows;
+        block.boundaries[2] = 1;
+    } else {
+        block.boundaries[2] = 0;
+    }
+    if (j > 0) {
+        // Need to communicate with left
+        comNodeCount += blockCols;
+        block.boundaries[3] = 1;
+    } else {
+        block.boundaries[3] = 0;
+    }
+    if (comNodeCount > 0) {
+        block.comNodes = malloc(comNodeCount);
+    }
     return block;
 }
 

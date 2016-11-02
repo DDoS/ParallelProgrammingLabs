@@ -10,6 +10,8 @@ typedef struct {
     unsigned rows;
     unsigned cols;
     Node *nodes;
+    Node *comNodes;
+    char boundaries[4];
 } Block;
 
 Block createBlock(unsigned blocks, unsigned process);
