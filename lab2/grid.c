@@ -252,7 +252,8 @@ void updateBlockGridEdge(Block* block) {
     unsigned cols = block->cols;
     Node *nodes = block->nodes;
     // The lack of nodes aboves means this is the upper edge
-    if (block->aboveNodes == NULL) {
+    Node *aboveNodes = block->aboveNodes;
+    if (aboveNodes == NULL) {
         unsigned ii = rows - 1;
         for (unsigned jj = 1; jj < cols - 1; jj++) {
             Node *n = nodes + (ii + jj * rows);
@@ -264,7 +265,8 @@ void updateBlockGridEdge(Block* block) {
         }
     }
     // The lack of nodes on the right means this is the right edge
-    if (block->rightNodes == NULL) {
+    Node *rightNodes = block->rightNodes;
+    if (rightNodes == NULL) {
         unsigned jj = rows - 1;
         for (unsigned ii = 1; ii < rows - 1; ii++) {
             Node *n = nodes + (ii + jj * rows);
@@ -276,7 +278,8 @@ void updateBlockGridEdge(Block* block) {
         }
     }
     // The lack of nodes bellow means this is the lower edge
-    if (block->rightNodes == NULL) {
+    Node *belowNodes = block->belowNodes;
+    if (belowNodes == NULL) {
         unsigned ii = 0;
         for (unsigned jj = 1; jj < cols - 1; jj++) {
             Node *n = nodes + (ii + jj * rows);
@@ -288,7 +291,8 @@ void updateBlockGridEdge(Block* block) {
         }
     }
     // The lack of nodes on the left means this is the left edge
-    if (block->leftNodes == NULL) {
+    Node *leftNodes = block->leftNodes;
+    if (leftNodes == NULL) {
         unsigned jj = 0;
         for (unsigned ii = 1; ii < rows - 1; ii++) {
             Node *n = nodes + (ii + jj * rows);
@@ -299,33 +303,85 @@ void updateBlockGridEdge(Block* block) {
             updateNode(ni + ii, nj + jj, n, a, r, b, l);
         }
     }
+    // The lack of nodes on the upper and right edges means this is the upper right corner
+    if (aboveNodes != NULL && rightNodes != NULL) {
+        unsigned ii = rows - 1;
+        unsigned jj = cols - 1;
+        Node *n = nodes + (ii + jj * rows);
+        Node *a = NULL;
+        Node *r = NULL;
+        Node *b = nodes + (ii + (jj - 1) * rows);
+        Node *l = nodes + ((ii - 1) + jj * rows);
+        updateNode(ni + ii, nj + jj, n, a, r, b, l);
+    }
+    // The lack of nodes on the bottom and right edges means this is the lower right corner
+    if (belowNodes != NULL && rightNodes != NULL) {
+        unsigned ii = 0;
+        unsigned jj = cols - 1;
+        Node *n = nodes + (ii + jj * rows);
+        Node *a = nodes + (ii + (jj + 1) * rows);
+        Node *r = NULL;
+        Node *b = NULL;
+        Node *l = nodes + ((ii - 1) + jj * rows);
+        updateNode(ni + ii, nj + jj, n, a, r, b, l);
+    }
+    // The lack of nodes on the bottom and left edges means this is the lower left corner
+    if (belowNodes != NULL && leftNodes != NULL) {
+        unsigned ii = 0;
+        unsigned jj = 0;
+        Node *n = nodes + (ii + jj * rows);
+        Node *a = nodes + (ii + (jj + 1) * rows);
+        Node *r = nodes + ((ii + 1) + jj * rows);
+        Node *b = NULL;
+        Node *l = NULL;
+        updateNode(ni + ii, nj + jj, n, a, r, b, l);
+    }
+    // The lack of nodes on the upper and left edges means this is the upper left corner
+    if (aboveNodes != NULL && leftNodes != NULL) {
+        unsigned ii = rows - 1;
+        unsigned jj = 0;
+        Node *n = nodes + (ii + jj * rows);
+        Node *a = NULL;
+        Node *r = nodes + ((ii + 1) + jj * rows);
+        Node *b = nodes + (ii + (jj - 1) * rows);
+        Node *l = NULL;
+        updateNode(ni + ii, nj + jj, n, a, r, b, l);
+    }
 }
 
-Node* getNode(Block *block, signed i, signed j) {
+void updateNodeValueAge(Node* nodes, unsigned count) {
+    for (unsigned i = 0; i < count; i++) {
+        Node *n = nodes + i;
+        n->u2 = n->u1;
+        n->u1 = n->u;
+    }
+}
+
+void updateBlockValueAge(Block* block) {
     unsigned rows = block->rows;
     unsigned cols = block->cols;
-    if (i < -1 || j < -1 || i >= rows + 1 || j >= cols + 1) {
-        exit(-1);
+    updateNodeValueAge(block->nodes, rows * cols);
+    Node *aboveNodes = block->aboveNodes;
+    if (aboveNodes != NULL) {
+        updateNodeValueAge(aboveNodes, cols);
     }
-    if (i < 0) {
-        if (j < 0 || j >= cols) {
-            exit(-1);
-        }
-        return block->belowNodes + j;
+    Node *rightNodes = block->rightNodes;
+    if (rightNodes != NULL) {
+        updateNodeValueAge(rightNodes, rows);
     }
-    if (i < rows) {
-        if (j < 0) {
-            return block->leftNodes + i;
-        }
-        if (j < cols) {
-            return block->nodes + i + j * rows;
-        }
-        if (j < cols + 1) {
-            return block->rightNodes + i;
-        }
+    Node *belowNodes = block->belowNodes;
+    if (belowNodes != NULL) {
+        updateNodeValueAge(belowNodes, cols);
     }
-    if (j < 0 || j >= cols) {
-        exit(-1);
+    Node *leftNodes = block->leftNodes;
+    if (leftNodes != NULL) {
+        updateNodeValueAge(leftNodes, rows);
     }
-    return block->aboveNodes + j;
+}
+
+void updateBlock(Block* block) {
+    updateBlockGridMiddle(block);
+    // TODO: Communication goes here
+    updateBlockGridEdge(block);
+    updateBlockValueAge(block);
 }

@@ -17,3 +17,5 @@ typedef struct {
 } Block;
 
 Block createBlock(unsigned blocks, unsigned process);
+
+void updateBlock(Block* block);

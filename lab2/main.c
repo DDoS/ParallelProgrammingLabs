@@ -2,15 +2,26 @@
 
 #include "grid.h"
 
-int main(int argc, char *argv[]) {
-    unsigned processCount = 1;
-    unsigned sum;
-    for (unsigned i = 0; i < processCount; i++) {
-        Block block = createBlock(processCount, i);
-        printf("%d %d %d %d %d %d %d %d\n", block.i, block.j, block.rows, block.cols,
-                block.aboveNodes != NULL, block.rightNodes != NULL, block.belowNodes != NULL, block.leftNodes != NULL);
-        sum += block.rows * block.cols;
+void printGrid(Block* block) {
+    unsigned rows = block->rows;
+    unsigned cols = block->cols;
+    Node *nodes = block->nodes;
+    for (unsigned i = 0; i < rows; i++) {
+        for (unsigned j = 0; j < cols; j++) {
+            Node *node = nodes + i + j * rows;
+            printf("(%d,%d): %0.6f ", i, j, node->u);
+        }
+        printf("\n");
     }
-    printf("%d\n", sum);
+}
+
+int main(int argc, char *argv[]) {
+    Block block = createBlock(1, 0);
+    block.nodes[2 + 2 * block.rows].u1 += 1;
+    updateBlock(&block);
+    printGrid(&block);
+    printf("\n");
+    updateBlock(&block);
+    printGrid(&block);
     return 0;
 }
