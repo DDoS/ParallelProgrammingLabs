@@ -3,7 +3,7 @@
 #include "grid.h"
 #include "constant.h"
 
-void calculateBlockLayout(unsigned blocks, unsigned *rows, unsigned *columns) {
+void calculateBlockLayout(unsigned blocks, unsigned *rows, unsigned *cols) {
     // Calculate the hypothetical best division of blocks: the square root
     unsigned s = sqrt(blocks);
     // Find the next closest multiple of the block count
@@ -13,7 +13,7 @@ void calculateBlockLayout(unsigned blocks, unsigned *rows, unsigned *columns) {
     // It will be the row count
     *rows = s;
     // We get the column count from the row count
-    *columns = N / s;
+    *cols = blocks / s;
 }
 
 /*
