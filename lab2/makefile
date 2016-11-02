@@ -1,7 +1,7 @@
 CC = mpicc
 CCFLAGS = -std=c99
 
-grid.o: grid.c constant.h node.h
+grid.o: grid.c grid.h constant.h
 	$(CC) $(CCFLAGS) -c grid.c
 
 # clean the compilation output

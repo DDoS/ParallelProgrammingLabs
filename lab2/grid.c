@@ -1,7 +1,7 @@
 #include <math.h>
 
+#include "grid.h"
 #include "constant.h"
-#include "node.h"
 
 void calculateBlockLayout(unsigned blocks, unsigned *rows, unsigned *columns) {
     // Calculate the hypothetical best division of blocks: the square root
