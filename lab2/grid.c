@@ -18,6 +18,9 @@ void calculateBlockLayout(unsigned blocks, unsigned *rows, unsigned *cols) {
 }
 
 Block createBlock(unsigned blocks, unsigned process) {
+    if (process >= blocks) {
+        exit(-1);
+    }
     // First calculate the number of rows and columns
     unsigned rows;
     unsigned cols;
@@ -26,63 +29,52 @@ Block createBlock(unsigned blocks, unsigned process) {
     unsigned blockRows = N / rows;
     unsigned blockCols = N / cols;
     // Then calculate the block coordinates, in block space
-    unsigned i = process % rows;
-    unsigned j = process / rows;
+    unsigned bi = process % rows;
+    unsigned bj = process / rows;
+    // Convert the coordinates to node space
+    unsigned ni = bi * blockRows;
+    unsigned nj = bj * blockCols;
     // If the process is the last row, assign it any extra rows
-    if (i + 1 == rows) {
+    if (bi + 1 == rows) {
         blockRows += N % rows;
     }
     // If the process is the last column, assign it any extra columns
-    if (j + 1 == cols) {
+    if (bj + 1 == cols) {
         blockCols += N % cols;
     }
     // Allocate nodes for the block
     Node *nodes = calloc(blockRows * blockCols, sizeof(Node));
     // Create the grid block
     Block block = {
-        .i = i, .j = j, .rows = blockRows, .cols = blockCols, .nodes = nodes, .comNodes = NULL
+        .i = ni, .j = nj, .rows = blockRows, .cols = blockCols, .nodes = nodes,
+        .aboveNodes = NULL, .rightNodes = NULL, .belowNodes = NULL, .leftNodes = NULL
     };
     // If the block shares a boundary, then we add extra nodes
     // to represent the overlap with another process
     unsigned comNodeCount = 0;
-    if (i + 1 < rows) {
+    if (bi + 1 < rows) {
         // Need to communicate with above
-        comNodeCount += blockRows;
-        block.boundaries[0] = 1;
-    } else {
-        block.boundaries[0] = 0;
+        block.aboveNodes = calloc(blockCols, sizeof(Node));
     }
-    if (j + 1 < cols) {
+    if (bj + 1 < cols) {
         // Need to communicate with right
-        comNodeCount += blockCols;
-        block.boundaries[1] = 1;
-    } else {
-        block.boundaries[1] = 0;
+        block.rightNodes = calloc(blockRows, sizeof(Node));
     }
-    if (i > 0) {
+    if (bi > 0) {
         // Need to communicate with below
-        comNodeCount += blockRows;
-        block.boundaries[2] = 1;
-    } else {
-        block.boundaries[2] = 0;
+        block.belowNodes = calloc(blockCols, sizeof(Node));
     }
-    if (j > 0) {
+    if (bj > 0) {
         // Need to communicate with left
-        comNodeCount += blockCols;
-        block.boundaries[3] = 1;
-    } else {
-        block.boundaries[3] = 0;
-    }
-    if (comNodeCount > 0) {
-        block.comNodes = calloc(comNodeCount, sizeof(Node));
+        block.leftNodes = calloc(blockRows, sizeof(Node));
     }
     return block;
 }
 
 /*
     The node at "n" and has coordinates (i, j).
-    It is surrounded, as depicted bellow, by nodes "a", "r", "b" and "l".
-    If the node is not in the middle, 0 is used for non-existing values.
+    It is surrounded, as depicted below, by nodes "a", "r", "b" and "l".
+    If the node is not in the middle, NULL is used for non-existing neighbours.
 
         a
         |        j
@@ -90,7 +82,7 @@ Block createBlock(unsigned blocks, unsigned process) {
         |        |
         b        + -- > i
 */
-void update(unsigned i, unsigned j, Node *n,  Node *a,  Node *r,  Node *b,  Node *l) {
+void updateNode(unsigned i, unsigned j, Node *n,  Node *a,  Node *r,  Node *b,  Node *l) {
     if (i == 0) {
         if (j == 0) {
             // Corner case
@@ -133,4 +125,207 @@ void update(unsigned i, unsigned j, Node *n,  Node *a,  Node *r,  Node *b,  Node
     }
     // Middle case
     n->u = (RHO * (l->u1 + r->u1 + b->u1 + a->u1 - 4 * n->u1) + 2 * n->u1 - (1 - ETA) * n->u2) / (1 + ETA);
+}
+
+/*
+    Performs one block update, only for the middle nodes.
+*/
+void updateBlockGridMiddle(Block *block) {
+    unsigned ni = block->i;
+    unsigned nj = block->j;
+    unsigned rows = block->rows;
+    unsigned cols = block->cols;
+    Node *nodes = block->nodes;
+    // Start with the nodes in the middle of the block
+    for (unsigned jj = 1; jj < cols - 1; jj++) {
+        for (unsigned ii = 1; ii < rows - 1; ii++) {
+            Node *n = nodes + (ii + jj * rows);
+            Node *a = nodes + (ii + (jj + 1) * rows);
+            Node *r = nodes + ((ii + 1) + jj * rows);
+            Node *b = nodes + (ii + (jj - 1) * rows);
+            Node *l = nodes + ((ii - 1) + jj * rows);
+            updateNode(ni + ii, nj + jj, n, a, r, b, l);
+        }
+    }
+    // Update the upper edge nodes, if we have nodes above
+    Node *aboveNodes = block->aboveNodes;
+    if (aboveNodes != NULL) {
+        unsigned ii = rows - 1;
+        for (unsigned jj = 1; jj < cols - 1; jj++) {
+            Node *n = nodes + (ii + jj * rows);
+            Node *a = aboveNodes + jj;
+            Node *r = nodes + ((ii + 1) + jj * rows);
+            Node *b = nodes + (ii + (jj - 1) * rows);
+            Node *l = nodes + ((ii - 1) + jj * rows);
+            updateNode(ni + ii, nj + jj, n, a, r, b, l);
+        }
+    }
+    // Update the right edge nodes, if we have nodes on the right
+    Node *rightNodes = block->rightNodes;
+    if (rightNodes != NULL) {
+        unsigned jj = cols - 1;
+        for (unsigned ii = 1; ii < rows - 1; ii++) {
+            Node *n = nodes + (ii + jj * rows);
+            Node *a = nodes + (ii + (jj + 1) * rows);
+            Node *r = rightNodes + ii;
+            Node *b = nodes + (ii + (jj - 1) * rows);
+            Node *l = nodes + ((ii - 1) + jj * rows);
+            updateNode(ni + ii, nj + jj, n, a, r, b, l);
+        }
+    }
+    // Update the lower edge nodes, if we have nodes bellow
+    Node *belowNodes = block->belowNodes;
+    if (belowNodes != NULL) {
+        unsigned ii = 0;
+        for (unsigned jj = 1; jj < cols - 1; jj++) {
+            Node *n = nodes + (ii + jj * rows);
+            Node *a = nodes + (ii + (jj + 1) * rows);
+            Node *r = nodes + ((ii + 1) + jj * rows);
+            Node *b = belowNodes + jj;
+            Node *l = nodes + ((ii - 1) + jj * rows);
+            updateNode(ni + ii, nj + jj, n, a, r, b, l);
+        }
+    }
+    // Update the left edge nodes, if we have nodes on the left
+    Node *leftNodes = block->leftNodes;
+    if (leftNodes != NULL) {
+        unsigned jj = 0;
+        for (unsigned ii = 1; ii < rows - 1; ii++) {
+            Node *n = nodes + (ii + jj * rows);
+            Node *a = nodes + (ii + (jj + 1) * rows);
+            Node *r = nodes + ((ii + 1) + jj * rows);
+            Node *b = nodes + (ii + (jj - 1) * rows);
+            Node *l = leftNodes + ii;
+            updateNode(ni + ii, nj + jj, n, a, r, b, l);
+        }
+    }
+    // Update the upper right corner node, if we have nodes above and on the right
+    if (aboveNodes != NULL && rightNodes != NULL) {
+        unsigned ii = rows - 1;
+        unsigned jj = cols - 1;
+        Node *n = nodes + (ii + jj * rows);
+        Node *a = aboveNodes + jj;
+        Node *r = rightNodes + ii;
+        Node *b = nodes + (ii + (jj - 1) * rows);
+        Node *l = nodes + ((ii - 1) + jj * rows);
+        updateNode(ni + ii, nj + jj, n, a, r, b, l);
+    }
+    // Update the bottom right corner node, if we have nodes below and on the right
+    if (belowNodes != NULL && rightNodes != NULL) {
+        unsigned ii = 0;
+        unsigned jj = cols - 1;
+        Node *n = nodes + (ii + jj * rows);
+        Node *a = nodes + (ii + (jj + 1) * rows);
+        Node *r = rightNodes + ii;
+        Node *b = belowNodes + jj;
+        Node *l = nodes + ((ii - 1) + jj * rows);
+        updateNode(ni + ii, nj + jj, n, a, r, b, l);
+    }
+    // Update the bottom left corner node, if we have nodes below and on the left
+    if (belowNodes != NULL && leftNodes != NULL) {
+        unsigned ii = 0;
+        unsigned jj = 0;
+        Node *n = nodes + (ii + jj * rows);
+        Node *a = nodes + (ii + (jj + 1) * rows);
+        Node *r = nodes + ((ii + 1) + jj * rows);
+        Node *b = belowNodes + jj;
+        Node *l = leftNodes + ii;
+        updateNode(ni + ii, nj + jj, n, a, r, b, l);
+    }
+    // Update the upper left corner node, if we have nodes above and on the left
+    if (aboveNodes != NULL && leftNodes != NULL) {
+        unsigned ii = rows - 1;
+        unsigned jj = 0;
+        Node *n = nodes + (ii + jj * rows);
+        Node *a = aboveNodes + jj;
+        Node *r = nodes + ((ii + 1) + jj * rows);
+        Node *b = nodes + (ii + (jj - 1) * rows);
+        Node *l = leftNodes + ii;
+        updateNode(ni + ii, nj + jj, n, a, r, b, l);
+    }
+}
+
+void updateBlockGridEdge(Block* block) {
+    unsigned ni = block->i;
+    unsigned nj = block->j;
+    unsigned rows = block->rows;
+    unsigned cols = block->cols;
+    Node *nodes = block->nodes;
+    // The lack of nodes aboves means this is the upper edge
+    if (block->aboveNodes == NULL) {
+        unsigned ii = rows - 1;
+        for (unsigned jj = 1; jj < cols - 1; jj++) {
+            Node *n = nodes + (ii + jj * rows);
+            Node *a = NULL;
+            Node *r = nodes + ((ii + 1) + jj * rows);
+            Node *b = nodes + (ii + (jj - 1) * rows);
+            Node *l = nodes + ((ii - 1) + jj * rows);
+            updateNode(ni + ii, nj + jj, n, a, r, b, l);
+        }
+    }
+    // The lack of nodes on the right means this is the right edge
+    if (block->rightNodes == NULL) {
+        unsigned jj = rows - 1;
+        for (unsigned ii = 1; ii < rows - 1; ii++) {
+            Node *n = nodes + (ii + jj * rows);
+            Node *a = nodes + (ii + (jj + 1) * rows);
+            Node *r = NULL;
+            Node *b = nodes + (ii + (jj - 1) * rows);
+            Node *l = nodes + ((ii - 1) + jj * rows);
+            updateNode(ni + ii, nj + jj, n, a, r, b, l);
+        }
+    }
+    // The lack of nodes bellow means this is the lower edge
+    if (block->rightNodes == NULL) {
+        unsigned ii = 0;
+        for (unsigned jj = 1; jj < cols - 1; jj++) {
+            Node *n = nodes + (ii + jj * rows);
+            Node *a = nodes + (ii + (jj + 1) * rows);
+            Node *r = nodes + ((ii + 1) + jj * rows);
+            Node *b = NULL;
+            Node *l = nodes + ((ii - 1) + jj * rows);
+            updateNode(ni + ii, nj + jj, n, a, r, b, l);
+        }
+    }
+    // The lack of nodes on the left means this is the left edge
+    if (block->leftNodes == NULL) {
+        unsigned jj = 0;
+        for (unsigned ii = 1; ii < rows - 1; ii++) {
+            Node *n = nodes + (ii + jj * rows);
+            Node *a = nodes + (ii + (jj + 1) * rows);
+            Node *r = nodes + ((ii + 1) + jj * rows);
+            Node *b = nodes + (ii + (jj - 1) * rows);
+            Node *l = NULL;
+            updateNode(ni + ii, nj + jj, n, a, r, b, l);
+        }
+    }
+}
+
+Node* getNode(Block *block, signed i, signed j) {
+    unsigned rows = block->rows;
+    unsigned cols = block->cols;
+    if (i < -1 || j < -1 || i >= rows + 1 || j >= cols + 1) {
+        exit(-1);
+    }
+    if (i < 0) {
+        if (j < 0 || j >= cols) {
+            exit(-1);
+        }
+        return block->belowNodes + j;
+    }
+    if (i < rows) {
+        if (j < 0) {
+            return block->leftNodes + i;
+        }
+        if (j < cols) {
+            return block->nodes + i + j * rows;
+        }
+        if (j < cols + 1) {
+            return block->rightNodes + i;
+        }
+    }
+    if (j < 0 || j >= cols) {
+        exit(-1);
+    }
+    return block->aboveNodes + j;
 }
