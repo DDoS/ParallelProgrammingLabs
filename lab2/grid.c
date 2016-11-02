@@ -37,7 +37,7 @@ Block createBlock(unsigned blocks, unsigned process) {
         blockCols += N % cols;
     }
     // Allocate nodes for the block
-    Node *nodes = malloc(blockRows * blockCols);
+    Node *nodes = calloc(blockRows * blockCols, sizeof(Node));
     // Create the grid block
     Block block = {
         .i = i, .j = j, .rows = blockRows, .cols = blockCols, .nodes = nodes, .comNodes = NULL
@@ -74,7 +74,7 @@ Block createBlock(unsigned blocks, unsigned process) {
         block.boundaries[3] = 0;
     }
     if (comNodeCount > 0) {
-        block.comNodes = malloc(comNodeCount);
+        block.comNodes = calloc(comNodeCount, sizeof(Node));
     }
     return block;
 }
