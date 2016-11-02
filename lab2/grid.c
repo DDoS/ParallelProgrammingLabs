@@ -1,5 +1,20 @@
+#include <math.h>
+
 #include "constant.h"
 #include "node.h"
+
+void calculateBlockLayout(unsigned blocks, unsigned *rows, unsigned *columns) {
+    // Calculate the hypothetical best division of blocks: the square root
+    unsigned s = sqrt(blocks);
+    // Find the next closest multiple of the block count
+    while (blocks % s != 0) {
+        s--;
+    }
+    // It will be the row count
+    *rows = s;
+    // We get the column count from the row count
+    *columns = N / s;
+}
 
 /*
     The node at "n" and has coordinates (i, j).
