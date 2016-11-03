@@ -77,19 +77,19 @@ Block createBlock(unsigned blocks, unsigned process) {
     If the node is not in the middle, NULL is used for non-existing neighbours.
 
         a
-        |        j
+        |        i
     l - n - r    ^
         |        |
-        b        + -- > i
+        b        + -- > j
 */
 void updateNode(unsigned i, unsigned j, Node *n,  Node *a,  Node *r,  Node *b,  Node *l) {
-    if (i == 0) {
-        if (j == 0) {
+    if (j == 0) {
+        if (i == 0) {
             // Corner case
             n->u = G * r->u;
             return;
         }
-        if (j == N - 1) {
+        if (i == N - 1) {
             // Corner case
             n->u = G * b->u;
             return;
@@ -98,13 +98,13 @@ void updateNode(unsigned i, unsigned j, Node *n,  Node *a,  Node *r,  Node *b,  
         n->u = G * r->u;
         return;
     }
-    if (i == N - 1) {
-        if (j == 0) {
+    if (j == N - 1) {
+        if (i == 0) {
             // Corner case
             n->u = G * l->u;
             return;
         }
-        if (j == N - 1) {
+        if (i == N - 1) {
             // Corner case
             n->u = G * b->u;
             return;
@@ -113,12 +113,12 @@ void updateNode(unsigned i, unsigned j, Node *n,  Node *a,  Node *r,  Node *b,  
         n->u = G * l->u;
         return;
     }
-    if (j == 0) {
+    if (i == 0) {
         // Side case
         n->u = G * a->u;
         return;
     }
-    if (j == N - 1) {
+    if (i == N - 1) {
         // Side case
         n->u = G * b->u;
         return;
@@ -140,10 +140,10 @@ void updateBlockGridMiddle(Block *block) {
     for (unsigned jj = 1; jj < cols - 1; jj++) {
         for (unsigned ii = 1; ii < rows - 1; ii++) {
             Node *n = nodes + (ii + jj * rows);
-            Node *a = nodes + (ii + (jj + 1) * rows);
-            Node *r = nodes + ((ii + 1) + jj * rows);
-            Node *b = nodes + (ii + (jj - 1) * rows);
-            Node *l = nodes + ((ii - 1) + jj * rows);
+            Node *a = nodes + ((ii + 1) + jj * rows);
+            Node *r = nodes + (ii + (jj + 1) * rows);
+            Node *b = nodes + ((ii - 1) + jj * rows);
+            Node *l = nodes + (ii + (jj - 1) * rows);
             updateNode(ni + ii, nj + jj, n, a, r, b, l);
         }
     }
@@ -154,9 +154,9 @@ void updateBlockGridMiddle(Block *block) {
         for (unsigned jj = 1; jj < cols - 1; jj++) {
             Node *n = nodes + (ii + jj * rows);
             Node *a = aboveNodes + jj;
-            Node *r = nodes + ((ii + 1) + jj * rows);
-            Node *b = nodes + (ii + (jj - 1) * rows);
-            Node *l = nodes + ((ii - 1) + jj * rows);
+            Node *r = nodes + (ii + (jj + 1) * rows);
+            Node *b = nodes + ((ii - 1) + jj * rows);
+            Node *l = nodes + (ii + (jj - 1) * rows);
             updateNode(ni + ii, nj + jj, n, a, r, b, l);
         }
     }
@@ -166,10 +166,10 @@ void updateBlockGridMiddle(Block *block) {
         unsigned jj = cols - 1;
         for (unsigned ii = 1; ii < rows - 1; ii++) {
             Node *n = nodes + (ii + jj * rows);
-            Node *a = nodes + (ii + (jj + 1) * rows);
+            Node *a = nodes + ((ii + 1) + jj * rows);
             Node *r = rightNodes + ii;
-            Node *b = nodes + (ii + (jj - 1) * rows);
-            Node *l = nodes + ((ii - 1) + jj * rows);
+            Node *b = nodes + ((ii - 1) + jj * rows);
+            Node *l = nodes + (ii + (jj - 1) * rows);
             updateNode(ni + ii, nj + jj, n, a, r, b, l);
         }
     }
@@ -179,10 +179,10 @@ void updateBlockGridMiddle(Block *block) {
         unsigned ii = 0;
         for (unsigned jj = 1; jj < cols - 1; jj++) {
             Node *n = nodes + (ii + jj * rows);
-            Node *a = nodes + (ii + (jj + 1) * rows);
-            Node *r = nodes + ((ii + 1) + jj * rows);
+            Node *a = nodes + ((ii + 1) + jj * rows);
+            Node *r = nodes + (ii + (jj + 1) * rows);
             Node *b = belowNodes + jj;
-            Node *l = nodes + ((ii - 1) + jj * rows);
+            Node *l = nodes + (ii + (jj - 1) * rows);
             updateNode(ni + ii, nj + jj, n, a, r, b, l);
         }
     }
@@ -192,9 +192,9 @@ void updateBlockGridMiddle(Block *block) {
         unsigned jj = 0;
         for (unsigned ii = 1; ii < rows - 1; ii++) {
             Node *n = nodes + (ii + jj * rows);
-            Node *a = nodes + (ii + (jj + 1) * rows);
-            Node *r = nodes + ((ii + 1) + jj * rows);
-            Node *b = nodes + (ii + (jj - 1) * rows);
+            Node *a = nodes + ((ii + 1) + jj * rows);
+            Node *r = nodes + (ii + (jj + 1) * rows);
+            Node *b = nodes + ((ii - 1) + jj * rows);
             Node *l = leftNodes + ii;
             updateNode(ni + ii, nj + jj, n, a, r, b, l);
         }
@@ -206,8 +206,8 @@ void updateBlockGridMiddle(Block *block) {
         Node *n = nodes + (ii + jj * rows);
         Node *a = aboveNodes + jj;
         Node *r = rightNodes + ii;
-        Node *b = nodes + (ii + (jj - 1) * rows);
-        Node *l = nodes + ((ii - 1) + jj * rows);
+        Node *b = nodes + ((ii - 1) + jj * rows);
+        Node *l = nodes + (ii + (jj - 1) * rows);
         updateNode(ni + ii, nj + jj, n, a, r, b, l);
     }
     // Update the bottom right corner node, if we have nodes below and on the right
@@ -215,10 +215,10 @@ void updateBlockGridMiddle(Block *block) {
         unsigned ii = 0;
         unsigned jj = cols - 1;
         Node *n = nodes + (ii + jj * rows);
-        Node *a = nodes + (ii + (jj + 1) * rows);
+        Node *a = nodes + ((ii + 1) + jj * rows);
         Node *r = rightNodes + ii;
         Node *b = belowNodes + jj;
-        Node *l = nodes + ((ii - 1) + jj * rows);
+        Node *l = nodes + (ii + (jj - 1) * rows);
         updateNode(ni + ii, nj + jj, n, a, r, b, l);
     }
     // Update the bottom left corner node, if we have nodes below and on the left
@@ -226,8 +226,8 @@ void updateBlockGridMiddle(Block *block) {
         unsigned ii = 0;
         unsigned jj = 0;
         Node *n = nodes + (ii + jj * rows);
-        Node *a = nodes + (ii + (jj + 1) * rows);
-        Node *r = nodes + ((ii + 1) + jj * rows);
+        Node *a = nodes + ((ii + 1) + jj * rows);
+        Node *r = nodes + (ii + (jj + 1) * rows);
         Node *b = belowNodes + jj;
         Node *l = leftNodes + ii;
         updateNode(ni + ii, nj + jj, n, a, r, b, l);
@@ -238,8 +238,8 @@ void updateBlockGridMiddle(Block *block) {
         unsigned jj = 0;
         Node *n = nodes + (ii + jj * rows);
         Node *a = aboveNodes + jj;
-        Node *r = nodes + ((ii + 1) + jj * rows);
-        Node *b = nodes + (ii + (jj - 1) * rows);
+        Node *r = nodes + (ii + (jj + 1) * rows);
+        Node *b = nodes + ((ii - 1) + jj * rows);
         Node *l = leftNodes + ii;
         updateNode(ni + ii, nj + jj, n, a, r, b, l);
     }
@@ -258,9 +258,9 @@ void updateBlockGridEdge(Block* block) {
         for (unsigned jj = 1; jj < cols - 1; jj++) {
             Node *n = nodes + (ii + jj * rows);
             Node *a = NULL;
-            Node *r = nodes + ((ii + 1) + jj * rows);
-            Node *b = nodes + (ii + (jj - 1) * rows);
-            Node *l = nodes + ((ii - 1) + jj * rows);
+            Node *r = nodes + (ii + (jj + 1) * rows);
+            Node *b = nodes + ((ii - 1) + jj * rows);
+            Node *l = nodes + (ii + (jj - 1) * rows);
             updateNode(ni + ii, nj + jj, n, a, r, b, l);
         }
     }
@@ -270,10 +270,10 @@ void updateBlockGridEdge(Block* block) {
         unsigned jj = rows - 1;
         for (unsigned ii = 1; ii < rows - 1; ii++) {
             Node *n = nodes + (ii + jj * rows);
-            Node *a = nodes + (ii + (jj + 1) * rows);
+            Node *a = nodes + ((ii + 1) + jj * rows);
             Node *r = NULL;
-            Node *b = nodes + (ii + (jj - 1) * rows);
-            Node *l = nodes + ((ii - 1) + jj * rows);
+            Node *b = nodes + ((ii - 1) + jj * rows);
+            Node *l = nodes + (ii + (jj - 1) * rows);
             updateNode(ni + ii, nj + jj, n, a, r, b, l);
         }
     }
@@ -283,10 +283,10 @@ void updateBlockGridEdge(Block* block) {
         unsigned ii = 0;
         for (unsigned jj = 1; jj < cols - 1; jj++) {
             Node *n = nodes + (ii + jj * rows);
-            Node *a = nodes + (ii + (jj + 1) * rows);
-            Node *r = nodes + ((ii + 1) + jj * rows);
+            Node *a = nodes + ((ii + 1) + jj * rows);
+            Node *r = nodes + (ii + (jj + 1) * rows);
             Node *b = NULL;
-            Node *l = nodes + ((ii - 1) + jj * rows);
+            Node *l = nodes + (ii + (jj - 1) * rows);
             updateNode(ni + ii, nj + jj, n, a, r, b, l);
         }
     }
@@ -296,54 +296,54 @@ void updateBlockGridEdge(Block* block) {
         unsigned jj = 0;
         for (unsigned ii = 1; ii < rows - 1; ii++) {
             Node *n = nodes + (ii + jj * rows);
-            Node *a = nodes + (ii + (jj + 1) * rows);
-            Node *r = nodes + ((ii + 1) + jj * rows);
-            Node *b = nodes + (ii + (jj - 1) * rows);
+            Node *a = nodes + ((ii + 1) + jj * rows);
+            Node *r = nodes + (ii + (jj + 1) * rows);
+            Node *b = nodes + ((ii - 1) + jj * rows);
             Node *l = NULL;
             updateNode(ni + ii, nj + jj, n, a, r, b, l);
         }
     }
     // The lack of nodes on the upper and right edges means this is the upper right corner
-    if (aboveNodes != NULL && rightNodes != NULL) {
+    if (aboveNodes == NULL && rightNodes == NULL) {
         unsigned ii = rows - 1;
         unsigned jj = cols - 1;
         Node *n = nodes + (ii + jj * rows);
         Node *a = NULL;
         Node *r = NULL;
-        Node *b = nodes + (ii + (jj - 1) * rows);
-        Node *l = nodes + ((ii - 1) + jj * rows);
+        Node *b = nodes + ((ii - 1) + jj * rows);
+        Node *l = nodes + (ii + (jj - 1) * rows);
         updateNode(ni + ii, nj + jj, n, a, r, b, l);
     }
     // The lack of nodes on the bottom and right edges means this is the lower right corner
-    if (belowNodes != NULL && rightNodes != NULL) {
+    if (belowNodes == NULL && rightNodes == NULL) {
         unsigned ii = 0;
         unsigned jj = cols - 1;
         Node *n = nodes + (ii + jj * rows);
-        Node *a = nodes + (ii + (jj + 1) * rows);
+        Node *a = nodes + ((ii + 1) + jj * rows);
         Node *r = NULL;
         Node *b = NULL;
-        Node *l = nodes + ((ii - 1) + jj * rows);
+        Node *l = nodes + (ii + (jj - 1) * rows);
         updateNode(ni + ii, nj + jj, n, a, r, b, l);
     }
     // The lack of nodes on the bottom and left edges means this is the lower left corner
-    if (belowNodes != NULL && leftNodes != NULL) {
+    if (belowNodes == NULL && leftNodes == NULL) {
         unsigned ii = 0;
         unsigned jj = 0;
         Node *n = nodes + (ii + jj * rows);
-        Node *a = nodes + (ii + (jj + 1) * rows);
-        Node *r = nodes + ((ii + 1) + jj * rows);
+        Node *a = nodes + ((ii + 1) + jj * rows);
+        Node *r = nodes + (ii + (jj + 1) * rows);
         Node *b = NULL;
         Node *l = NULL;
         updateNode(ni + ii, nj + jj, n, a, r, b, l);
     }
     // The lack of nodes on the upper and left edges means this is the upper left corner
-    if (aboveNodes != NULL && leftNodes != NULL) {
+    if (aboveNodes == NULL && leftNodes == NULL) {
         unsigned ii = rows - 1;
         unsigned jj = 0;
         Node *n = nodes + (ii + jj * rows);
         Node *a = NULL;
-        Node *r = nodes + ((ii + 1) + jj * rows);
-        Node *b = nodes + (ii + (jj - 1) * rows);
+        Node *r = nodes + (ii + (jj + 1) * rows);
+        Node *b = nodes + ((ii - 1) + jj * rows);
         Node *l = NULL;
         updateNode(ni + ii, nj + jj, n, a, r, b, l);
     }
