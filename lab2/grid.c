@@ -4,6 +4,9 @@
 #include "grid.h"
 #include "constant.h"
 
+/*
+    Calculates the number of rows and columns in the partition from the desired number of blocks
+*/
 void calculateBlockLayout(unsigned blocks, unsigned *rows, unsigned *cols) {
     // Calculate the hypothetical best division of blocks: the square root
     unsigned s = sqrt(blocks);
@@ -17,6 +20,10 @@ void calculateBlockLayout(unsigned blocks, unsigned *rows, unsigned *cols) {
     *cols = blocks / s;
 }
 
+/*
+    Creates a block, which is the data assigned to a single process
+    The parameters are the number of blocks and the process rank
+*/
 Block createBlock(unsigned blocks, unsigned process) {
     if (process >= blocks) {
         exit(-1);
@@ -245,6 +252,9 @@ void updateBlockGridMiddle(Block *block) {
     }
 }
 
+/*
+    Performs one block update, only for the edge nodes
+*/
 void updateBlockGridEdge(Block* block) {
     unsigned ni = block->i;
     unsigned nj = block->j;
@@ -349,6 +359,9 @@ void updateBlockGridEdge(Block* block) {
     }
 }
 
+/*
+    Updates the age of a node value by moving them to older "u" variables
+*/
 void updateNodeValueAge(Node* nodes, unsigned count) {
     for (unsigned i = 0; i < count; i++) {
         Node *n = nodes + i;
@@ -357,6 +370,9 @@ void updateNodeValueAge(Node* nodes, unsigned count) {
     }
 }
 
+/*
+    Updates the age of the node values by moving them to older "u" variables
+*/
 void updateBlockValueAge(Block* block) {
     unsigned rows = block->rows;
     unsigned cols = block->cols;
@@ -379,6 +395,9 @@ void updateBlockValueAge(Block* block) {
     }
 }
 
+/*
+    Performs one an update of a block for one iteration
+*/
 void updateBlock(Block* block) {
     updateBlockGridMiddle(block);
     // TODO: Communication goes here
