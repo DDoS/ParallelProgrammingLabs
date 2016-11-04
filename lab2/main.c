@@ -3,16 +3,19 @@
 
 #include <mpi.h>
 
+#include "constant.h"
 #include "grid.h"
 
 void printGrid(Block *block) {
+    unsigned ni = block->i;
+    unsigned nj = block->j;
     unsigned rows = block->rows;
     unsigned cols = block->cols;
     Node *nodes = block->nodes;
     for (unsigned i = 0; i < rows; i++) {
         for (unsigned j = 0; j < cols; j++) {
             Node *node = nodes + i + j * rows;
-            printf("(%d,%d): %0.6f ", i, j, node->u);
+            printf("(%d,%d): %0.6f ", ni + i, nj + j, node->u);
         }
         printf("\n");
     }
@@ -21,15 +24,38 @@ void printGrid(Block *block) {
 void doProcessWork(Partition *partition, unsigned index, unsigned iterationCount) {
     // Create the partition block for the process
     Block block = createBlock(partition, index);
+    // Check if this process contains the middle node, which we use for input and output
+    int middleInRows = block.i <= N_HALF && block.i + block.rows > N_HALF;
+    int middleInCols = block.j <= N_HALF && block.j + block.cols > N_HALF;
+    int containsMiddle = middleInRows && middleInCols;
+    // Simulate a hit on the drum in the middle
+    if (containsMiddle) {
+        // The middle is in the main nodes
+        block.nodes[(N_HALF - block.i) + (N_HALF - block.j) * block.rows].u1 += 1;
+    } else if (middleInRows) {
+        if (block.j == N_HALF + 1) {
+            // The middle is in the left boundary nodes
+            block.leftNodes[N_HALF - block.i].u1 += 1;
+        } else if (block.j + block.cols == N_HALF) {
+            // The middle is in the right boundary nodes
+            block.rightNodes[N_HALF - block.i].u1 += 1;
+        }
+    } else if (middleInCols) {
+        if (block.i == N_HALF + 1) {
+            // The middle is in the lower boundary nodes
+            block.belowNodes[N_HALF - block.j].u1 += 1;
+        } else if (block.i + block.rows == N_HALF) {
+            // The middle is in the upper boundary nodes
+            block.aboveNodes[N_HALF - block.j].u1 += 1;
+        }
+    }
     // Wait for all processes to be ready for an iteration
     MPI_Barrier(MPI_COMM_WORLD);
-
-    printf("%d\n", iterationCount);
-
-    //block.nodes[2 + 2 * block.rows].u1 += 1;
-    //updateBlock(&block);
-    //printGrid(&block);
-    //printf("\n");
+    // Do an update
+    updateBlock(&block);
+    // Print out the result
+    printGrid(&block);
+    printf("\n");
 }
 
 int main(int argc, char *argv[]) {
