@@ -263,11 +263,19 @@ void updateBlockGridEdge(Block *block) {
     unsigned rows = block->rows;
     unsigned cols = block->cols;
     Node *nodes = block->nodes;
-    // The lack of nodes aboves means this is the upper edge
     Node *aboveNodes = block->aboveNodes;
+    Node *rightNodes = block->rightNodes;
+    Node *belowNodes = block->belowNodes;
+    Node *leftNodes = block->leftNodes;
+    // Find the start and end of the rows and columns for middle nodes
+    unsigned startRow = belowNodes == NULL ? 1 : 0;
+    unsigned endRow = aboveNodes == NULL ? rows - 1 : rows;
+    unsigned startCol = leftNodes == NULL ? 1 : 0;
+    unsigned endCol = rightNodes == NULL ? cols - 1 : cols;
+    // The lack of nodes aboves means this is the upper edge
     if (aboveNodes == NULL) {
         unsigned ii = rows - 1;
-        for (unsigned jj = 1; jj < cols - 1; jj++) {
+        for (unsigned jj = startCol; jj < endCol; jj++) {
             Node *n = nodes + (ii + jj * rows);
             Node *a = NULL;
             Node *r = nodes + (ii + (jj + 1) * rows);
@@ -277,10 +285,9 @@ void updateBlockGridEdge(Block *block) {
         }
     }
     // The lack of nodes on the right means this is the right edge
-    Node *rightNodes = block->rightNodes;
     if (rightNodes == NULL) {
         unsigned jj = cols - 1;
-        for (unsigned ii = 1; ii < rows - 1; ii++) {
+        for (unsigned ii = startRow; ii < endRow; ii++) {
             Node *n = nodes + (ii + jj * rows);
             Node *a = nodes + ((ii + 1) + jj * rows);
             Node *r = NULL;
@@ -290,10 +297,9 @@ void updateBlockGridEdge(Block *block) {
         }
     }
     // The lack of nodes bellow means this is the lower edge
-    Node *belowNodes = block->belowNodes;
     if (belowNodes == NULL) {
         unsigned ii = 0;
-        for (unsigned jj = 1; jj < cols - 1; jj++) {
+        for (unsigned jj = startCol; jj < endCol; jj++) {
             Node *n = nodes + (ii + jj * rows);
             Node *a = nodes + ((ii + 1) + jj * rows);
             Node *r = nodes + (ii + (jj + 1) * rows);
@@ -303,10 +309,9 @@ void updateBlockGridEdge(Block *block) {
         }
     }
     // The lack of nodes on the left means this is the left edge
-    Node *leftNodes = block->leftNodes;
     if (leftNodes == NULL) {
         unsigned jj = 0;
-        for (unsigned ii = 1; ii < rows - 1; ii++) {
+        for (unsigned ii = startRow; ii < endRow; ii++) {
             Node *n = nodes + (ii + jj * rows);
             Node *a = nodes + ((ii + 1) + jj * rows);
             Node *r = nodes + (ii + (jj + 1) * rows);
@@ -378,7 +383,9 @@ void updateNodeValueAge(Node *nodes, unsigned count) {
 void updateBlockValueAge(Block *block) {
     unsigned rows = block->rows;
     unsigned cols = block->cols;
+    // Update the values of the main nodes
     updateNodeValueAge(block->nodes, rows * cols);
+    // Do the same for the boundaries
     Node *aboveNodes = block->aboveNodes;
     if (aboveNodes != NULL) {
         updateNodeValueAge(aboveNodes, cols);
