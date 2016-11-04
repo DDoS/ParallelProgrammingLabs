@@ -1,10 +1,16 @@
 typedef struct {
+    unsigned rows;
+    unsigned cols;
+} Partition;
+
+typedef struct {
     double u;
     double u1;
     double u2;
 } Node;
 
 typedef struct {
+    unsigned index;
     unsigned i;
     unsigned j;
     unsigned rows;
@@ -16,6 +22,8 @@ typedef struct {
     Node *leftNodes;
 } Block;
 
-Block createBlock(unsigned blocks, unsigned process);
+Partition createPartition(unsigned processCount);
 
-void updateBlock(Block* block);
+Block createBlock(Partition *partition, unsigned process);
+
+void updateBlock(Block *block);

@@ -7,37 +7,39 @@
 /*
     Calculates the number of rows and columns in the partition from the desired number of blocks
 */
-void calculateBlockLayout(unsigned blocks, unsigned *rows, unsigned *cols) {
+Partition createPartition(unsigned processCount) {
     // Calculate the hypothetical best division of blocks: the square root
-    unsigned s = sqrt(blocks);
+    unsigned s = sqrt(processCount);
     // Find the next closest multiple of the block count
-    while (blocks % s != 0) {
+    while (processCount % s != 0) {
         s--;
     }
     // It will be the row count
-    *rows = s;
+    unsigned rows = s;
     // We get the column count from the row count
-    *cols = blocks / s;
+    unsigned cols = processCount / s;
+    Partition partition = {rows, cols};
+    return partition;
 }
 
 /*
     Creates a block, which is the data assigned to a single process
     The parameters are the number of blocks and the process rank
 */
-Block createBlock(unsigned blocks, unsigned process) {
-    if (process >= blocks) {
+Block createBlock(Partition* partition, unsigned index) {
+    // Get the number of rows and columns in the block partition
+    unsigned rows = partition->rows;
+    unsigned cols = partition->cols;
+    // Check that the process index is in bounds
+    if (index >= rows * cols) {
         exit(-1);
     }
-    // First calculate the number of rows and columns
-    unsigned rows;
-    unsigned cols;
-    calculateBlockLayout(blocks, &rows, &cols);
     // Now calculate the size of the block for the process
     unsigned blockRows = N / rows;
     unsigned blockCols = N / cols;
     // Then calculate the block coordinates, in block space
-    unsigned bi = process % rows;
-    unsigned bj = process / rows;
+    unsigned bi = index % rows;
+    unsigned bj = index / rows;
     // Convert the coordinates to node space
     unsigned ni = bi * blockRows;
     unsigned nj = bj * blockCols;
@@ -53,7 +55,7 @@ Block createBlock(unsigned blocks, unsigned process) {
     Node *nodes = calloc(blockRows * blockCols, sizeof(Node));
     // Create the grid block
     Block block = {
-        .i = ni, .j = nj, .rows = blockRows, .cols = blockCols, .nodes = nodes,
+        .index = index, .i = ni, .j = nj, .rows = blockRows, .cols = blockCols, .nodes = nodes,
         .aboveNodes = NULL, .rightNodes = NULL, .belowNodes = NULL, .leftNodes = NULL
     };
     // If the block shares a boundary, then we add extra nodes
@@ -255,7 +257,7 @@ void updateBlockGridMiddle(Block *block) {
 /*
     Performs one block update, only for the edge nodes
 */
-void updateBlockGridEdge(Block* block) {
+void updateBlockGridEdge(Block *block) {
     unsigned ni = block->i;
     unsigned nj = block->j;
     unsigned rows = block->rows;
@@ -362,7 +364,7 @@ void updateBlockGridEdge(Block* block) {
 /*
     Updates the age of a node value by moving them to older "u" variables
 */
-void updateNodeValueAge(Node* nodes, unsigned count) {
+void updateNodeValueAge(Node *nodes, unsigned count) {
     for (unsigned i = 0; i < count; i++) {
         Node *n = nodes + i;
         n->u2 = n->u1;
@@ -373,7 +375,7 @@ void updateNodeValueAge(Node* nodes, unsigned count) {
 /*
     Updates the age of the node values by moving them to older "u" variables
 */
-void updateBlockValueAge(Block* block) {
+void updateBlockValueAge(Block *block) {
     unsigned rows = block->rows;
     unsigned cols = block->cols;
     updateNodeValueAge(block->nodes, rows * cols);
@@ -398,7 +400,7 @@ void updateBlockValueAge(Block* block) {
 /*
     Performs one an update of a block for one iteration
 */
-void updateBlock(Block* block) {
+void updateBlock(Block *block) {
     updateBlockGridMiddle(block);
     // TODO: Communication goes here
     updateBlockGridEdge(block);

@@ -2,7 +2,7 @@
 
 #include "grid.h"
 
-void printGrid(Block* block) {
+void printGrid(Block *block) {
     unsigned rows = block->rows;
     unsigned cols = block->cols;
     Node *nodes = block->nodes;
@@ -16,7 +16,9 @@ void printGrid(Block* block) {
 }
 
 int main(int argc, char *argv[]) {
-    Block block = createBlock(1, 0);
+    unsigned processCount = 1;
+    Partition partition = createPartition(processCount);
+    Block block = createBlock(&partition, 0);
     block.nodes[2 + 2 * block.rows].u1 += 1;
     updateBlock(&block);
     printGrid(&block);
