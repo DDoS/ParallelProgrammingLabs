@@ -279,7 +279,7 @@ void updateBlockGridEdge(Block *block) {
     // The lack of nodes on the right means this is the right edge
     Node *rightNodes = block->rightNodes;
     if (rightNodes == NULL) {
-        unsigned jj = rows - 1;
+        unsigned jj = cols - 1;
         for (unsigned ii = 1; ii < rows - 1; ii++) {
             Node *n = nodes + (ii + jj * rows);
             Node *a = nodes + ((ii + 1) + jj * rows);
