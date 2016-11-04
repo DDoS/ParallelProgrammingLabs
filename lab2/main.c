@@ -52,7 +52,7 @@ void doProcessWork(Partition *partition, unsigned index, unsigned iterationCount
     // Wait for all processes to be ready for an iteration
     MPI_Barrier(MPI_COMM_WORLD);
     // Do an update
-    updateBlock(&block);
+    updateBlock(partition, &block);
     // Print out the result
     printGrid(&block);
     printf("\n");

@@ -1,8 +1,15 @@
 #include <stdlib.h>
 #include <math.h>
 
+#include <mpi.h>
+
 #include "grid.h"
 #include "constant.h"
+
+#define ABOVE_TAG 0
+#define RIGHT_TAG 1
+#define BELOW_TAG 2
+#define LEFT_TAG 3
 
 /*
     Calculates the number of rows and columns in the partition from the desired number of blocks
@@ -404,12 +411,93 @@ void updateBlockValueAge(Block *block) {
     }
 }
 
+void communicateBoundaryNodes(Partition *partition, Block *block) {
+    unsigned rows = block->rows;
+    unsigned cols = block->cols;
+    Node *nodes = block->nodes;
+    // Calculate the block position in the partition
+    unsigned partitionRows = partition->rows;
+    unsigned index = block->index;
+    unsigned bi = index % partitionRows;
+    unsigned bj = index / partitionRows;
+    // Use a custom data types for rows so we don't have to copy to temp storage
+    static MPI_Datatype rowType;
+    static int rowTypeCached = 0;
+    if (!rowTypeCached) {
+        // "cols" elements, of size "sizeof(Node)" bytes , every "sizeof(Node) * cols" bytes
+        MPI_Type_vector(cols, sizeof(Node), sizeof(Node) * cols, MPI_CHAR, &rowType);
+        MPI_Type_commit(&rowType);
+        rowTypeCached = 1;
+    }
+    // Receive requests, so we can wait for reception
+    MPI_Request receiveRequests[4];
+    unsigned requestCount = 0;
+    // Exchange on upper boundary, if it exists
+    Node *aboveNodes = block->aboveNodes;
+    if (aboveNodes != NULL) {
+        // Calculate the index of the process above
+        unsigned indexAbove = (bi + 1) + bj * rows;
+        // Send above and ignore the output request
+        MPI_Request dataRequest;
+        MPI_Isend(nodes + (rows - 1), 1, rowType,
+                indexAbove, ABOVE_TAG, MPI_COMM_WORLD, &dataRequest);
+        MPI_Request_free(&dataRequest);
+        // Receive data from above, and keep the output request to be waited on
+        MPI_Irecv(aboveNodes, sizeof(Node) * cols, MPI_CHAR,
+                indexAbove, BELOW_TAG, MPI_COMM_WORLD, &receiveRequests[requestCount++]);
+    }
+    // Exchange on right boundary, if it exists
+    Node *rightNodes = block->rightNodes;
+    if (rightNodes != NULL) {
+        // Calculate the index of the process to the right
+        unsigned indexRight = bi + (bj + 1) * partitionRows;
+        // Send to the right and ignore the output request
+        MPI_Request dataRequest;
+        MPI_Isend(nodes + rows * (cols - 1), sizeof(Node) * rows, MPI_CHAR,
+                indexRight, RIGHT_TAG, MPI_COMM_WORLD, &dataRequest);
+        MPI_Request_free(&dataRequest);
+        // Receive data from the right, and keep the output request to be waited on
+        MPI_Irecv(rightNodes, sizeof(Node) * rows, MPI_CHAR,
+                indexRight, LEFT_TAG, MPI_COMM_WORLD, &receiveRequests[requestCount++]);
+    }
+    // Exchange on lower boundary, if it exists
+    Node *belowNodes = block->belowNodes;
+    if (belowNodes != NULL) {
+        // Calculate the index of the process below
+        unsigned indexBelow = (bi - 1) + bj * rows;
+        // Send below and ignore the output request
+        MPI_Request dataRequest;
+        MPI_Isend(nodes, 1, rowType,
+                indexBelow, BELOW_TAG, MPI_COMM_WORLD, &dataRequest);
+        MPI_Request_free(&dataRequest);
+        // Receive data from below, and keep the output request to be waited on
+        MPI_Irecv(belowNodes, sizeof(Node) * cols, MPI_CHAR,
+                indexBelow, ABOVE_TAG, MPI_COMM_WORLD, &receiveRequests[requestCount++]);
+    }
+    // Exchange on left boundary, if it exists
+    Node *leftNodes = block->leftNodes;
+    if (leftNodes != NULL) {
+        // Calculate the index of the process to the left
+        unsigned indexLeft = bi + (bj - 1) * partitionRows;
+        // Send to the left and ignore the output request
+        MPI_Request dataRequest;
+        MPI_Isend(nodes, sizeof(Node) * rows, MPI_CHAR,
+                indexLeft, LEFT_TAG, MPI_COMM_WORLD, &dataRequest);
+        MPI_Request_free(&dataRequest);
+        // Receive data from the left, and keep the output request to be waited on
+        MPI_Irecv(leftNodes, sizeof(Node) * rows, MPI_CHAR,
+                indexLeft, RIGHT_TAG, MPI_COMM_WORLD, &receiveRequests[requestCount++]);
+    }
+    // Wait for all the data to have been received before continuing
+    MPI_Waitall(requestCount, receiveRequests, MPI_STATUSES_IGNORE);
+}
+
 /*
     Performs one an update of a block for one iteration
 */
-void updateBlock(Block *block) {
+void updateBlock(Partition *partition, Block *block) {
     updateBlockGridMiddle(block);
-    // TODO: Communication goes here
+    communicateBoundaryNodes(partition, block);
     updateBlockGridEdge(block);
     updateBlockValueAge(block);
 }

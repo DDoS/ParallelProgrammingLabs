@@ -26,4 +26,4 @@ Partition createPartition(unsigned processCount);
 
 Block createBlock(Partition *partition, unsigned process);
 
-void updateBlock(Block *block);
+void updateBlock(Partition *partition, Block *block);
