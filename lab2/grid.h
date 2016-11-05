@@ -4,9 +4,9 @@ typedef struct {
 } Partition;
 
 typedef struct {
-    double u;
-    double u1;
-    double u2;
+    float u;
+    float u1;
+    float u2;
 } Node;
 
 typedef struct {
