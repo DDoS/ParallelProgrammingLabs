@@ -499,8 +499,8 @@ void sendBoundaryNodes(Partition *partition, Block *block, unsigned directions) 
     static MPI_Datatype rowType;
     static int rowTypeCached = 0;
     if (!rowTypeCached) {
-        // "cols" elements, of size "sizeof(Node)" bytes, every "sizeof(Node) * cols" bytes
-        MPI_Type_vector(cols, sizeof(Node), sizeof(Node) * cols, MPI_CHAR, &rowType);
+        // "cols" elements, of size "sizeof(Node)" bytes, every "sizeof(Node) * rows" bytes
+        MPI_Type_vector(cols, sizeof(Node), sizeof(Node) * rows, MPI_CHAR, &rowType);
         MPI_Type_commit(&rowType);
         rowTypeCached = 1;
     }
