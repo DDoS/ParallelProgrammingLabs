@@ -592,6 +592,45 @@ void receiveBoundaryNodes(Block *block, unsigned directions) {
     MPI_Waitall(requestCount, receiveRequests, MPI_STATUSES_IGNORE);
 }
 
+int isIsolatedEdge(Block *block) {
+    return (block->rows == 1 && (block->i == 0 || block->i == N - 1))
+        || (block->cols == 1 && (block->j == 0 || block->j == N - 1));
+}
+
+int isNextToIsolateEdge(Block *block) {
+    return block->i == 1 || block->i + block->rows == N - 1
+        || block->j == 1 || block->j + block->cols == N - 1;
+}
+
+void sendNodesToEdges(Partition *partition, Block *block) {
+    unsigned directionsToEdge = 0;
+    if (block->i == 1) {
+        directionsToEdge |= 0b100;
+    }
+    if (block->j == 1) {
+        directionsToEdge |= 0b1000;
+    }
+    if (block->i + block->rows == N - 1) {
+        directionsToEdge |= 0b1;
+    }
+    if (block->j + block->cols == N - 1) {
+        directionsToEdge |= 0b10;
+    }
+    sendBoundaryNodes(partition, block, directionsToEdge);
+}
+
+void edgesReceiveNodes(Block *block) {
+    unsigned directionsFromEdge = 0;
+    if (block->rows == 1 && (block->i == 0 || block->i == N - 1)) {
+        directionsFromEdge |= 0b101;
+    }
+    if (block->cols == 1 && (block->j == 0 || block->j == N - 1)) {
+        directionsFromEdge |= 0b1010;
+    }
+    receiveBoundaryNodes(block, directionsFromEdge);
+}
+
+
 int isIsolatedCorner(Block *block) {
     return (block->rows == 1 || block->cols == 1) && (
         (block->i == 0 && block->j == 0)
@@ -612,18 +651,18 @@ int isNextToIsolatedCorner(Block *block) {
         || (block->i + block->rows == N && block->j + block->cols == N - 1);
 }
 
-void sendNodesToCorner(Partition *partition, Block *block) {
-    unsigned directionsToCorner;
+void sendNodesToCorners(Partition *partition, Block *block) {
+    unsigned directionToCorner;
     if (block->i == 1) {
-        directionsToCorner = 0b100;
+        directionToCorner = 0b100;
     } else if (block->j == 1) {
-        directionsToCorner = 0b1000;
+        directionToCorner = 0b1000;
     } else if (block->i + block->rows == N - 1) {
-        directionsToCorner = 0b1;
+        directionToCorner = 0b1;
     } else if (block->j + block->cols == N - 1) {
-        directionsToCorner = 0b10;
+        directionToCorner = 0b10;
     }
-    sendBoundaryNodes(partition, block, directionsToCorner);
+    sendBoundaryNodes(partition, block, directionToCorner);
 }
 
 void cornersReceiveNodes(Block *block) {
@@ -641,16 +680,24 @@ void cornersReceiveNodes(Block *block) {
     Performs one an update of a block for one iteration
 */
 void updateBlock(Partition *partition, Block *block) {
-    updateBlockGridMiddle(block);
-
     sendBoundaryNodes(partition, block, 0b1111);
     receiveBoundaryNodes(block, 0b1111);
+
+    updateBlockGridMiddle(block);
+
+    MPI_Barrier(MPI_COMM_WORLD);
+    if (isNextToIsolateEdge(block)) {
+        sendNodesToEdges(partition, block);
+    }
+    if (isIsolatedEdge(block)) {
+        edgesReceiveNodes(block);
+    }
 
     updateBlockGridEdges(block);
 
     MPI_Barrier(MPI_COMM_WORLD);
     if (isNextToIsolatedCorner(block)) {
-        sendNodesToCorner(partition, block);
+        sendNodesToCorners(partition, block);
     }
     if (isIsolatedCorner(block)) {
         cornersReceiveNodes(block);
