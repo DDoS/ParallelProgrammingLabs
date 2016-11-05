@@ -57,11 +57,13 @@ void doProcessWork(Partition *partition, unsigned index, unsigned iterationCount
         updateBlock(partition, &block);
         // Print out the result
         if (containsMiddle) {
-            printf("%0.6f\n", block.nodes[(N_HALF - block.i) + (N_HALF - block.j) * block.rows].u);
+            printf("%0.6f", block.nodes[(N_HALF - block.i) + (N_HALF - block.j) * block.rows].u);
+            if (i < iterationCount - 1) {
+                printf(",");
+            }
+            printf("\n");
         }
     }
-    printGrid(&block);
-    printf("\n");
 }
 
 int main(int argc, char *argv[]) {
