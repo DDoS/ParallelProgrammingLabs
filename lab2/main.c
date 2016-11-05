@@ -6,21 +6,6 @@
 #include "constant.h"
 #include "grid.h"
 
-void printGrid(Block *block) {
-    unsigned ni = block->i;
-    unsigned nj = block->j;
-    unsigned rows = block->rows;
-    unsigned cols = block->cols;
-    Node *nodes = block->nodes;
-    for (unsigned i = 0; i < rows; i++) {
-        for (unsigned j = 0; j < cols; j++) {
-            Node *node = nodes + i + j * rows;
-            printf("(%d,%d): %0.6f ", ni + i, nj + j, node->u);
-        }
-        printf("\n");
-    }
-}
-
 void doProcessWork(Partition *partition, unsigned index, unsigned iterationCount) {
     // Create the partition block for the process
     Block block = createBlock(partition, index);
