@@ -45,6 +45,11 @@ Block createBlock(Partition* partition, unsigned index) {
     // Now calculate the size of the block for the process
     unsigned blockRows = N / rows;
     unsigned blockCols = N / cols;
+    // Check that the partition is feasable
+    if (blockRows == 0 || blockCols == 0) {
+        printf("Cannot divide a %dx%d grid into %d non-zero blocks\n", N, N, rows * cols);
+        exit(-1);
+    }
     // Then calculate the block coordinates, in block space
     unsigned bi = index % rows;
     unsigned bj = index / rows;
@@ -499,9 +504,6 @@ void sendBoundaryNodes(Partition *partition, Block *block, unsigned directions) 
         MPI_Type_commit(&rowType);
         rowTypeCached = 1;
     }
-    // Receive requests, so we can wait for reception
-    MPI_Request receiveRequests[4];
-    unsigned requestCount = 0;
     // Send on upper boundary, if it exists
     Node *aboveNodes = block->aboveNodes;
     if ((directions & 0b1) && aboveNodes != NULL) {
@@ -548,7 +550,7 @@ void sendBoundaryNodes(Partition *partition, Block *block, unsigned directions) 
     }
 }
 
-void receiveBoundaryNodes(Block *block) {
+void receiveBoundaryNodes(Block *block, unsigned directions) {
     unsigned rows = block->rows;
     unsigned cols = block->cols;
     // Receive requests, so we can wait for reception
@@ -556,7 +558,7 @@ void receiveBoundaryNodes(Block *block) {
     unsigned requestCount = 0;
     // Receive on upper boundary, if it exists
     Node *aboveNodes = block->aboveNodes;
-    if (aboveNodes != NULL) {
+    if ((directions & 0b1) && aboveNodes != NULL) {
         // Receive data from above, and keep the output request to be waited on
         MPI_Irecv(aboveNodes, sizeof(Node) * cols, MPI_CHAR,
                 MPI_ANY_SOURCE, BELOW_TAG, MPI_COMM_WORLD, receiveRequests + requestCount);
@@ -564,7 +566,7 @@ void receiveBoundaryNodes(Block *block) {
     }
     // Receive on right boundary, if it exists
     Node *rightNodes = block->rightNodes;
-    if (rightNodes != NULL) {
+    if ((directions & 0b10) && rightNodes != NULL) {
         // Receive data from the right, and keep the output request to be waited on
         MPI_Irecv(rightNodes, sizeof(Node) * rows, MPI_CHAR,
                 MPI_ANY_SOURCE, LEFT_TAG, MPI_COMM_WORLD, receiveRequests + requestCount);
@@ -572,7 +574,7 @@ void receiveBoundaryNodes(Block *block) {
     }
     // Receive on lower boundary, if it exists
     Node *belowNodes = block->belowNodes;
-    if (belowNodes != NULL) {
+    if ((directions & 0b100) && belowNodes != NULL) {
         // Receive data from below, and keep the output request to be waited on
         MPI_Irecv(belowNodes, sizeof(Node) * cols, MPI_CHAR,
                 MPI_ANY_SOURCE, ABOVE_TAG, MPI_COMM_WORLD, receiveRequests + requestCount);
@@ -580,7 +582,7 @@ void receiveBoundaryNodes(Block *block) {
     }
     // Receive on left boundary, if it exists
     Node *leftNodes = block->leftNodes;
-    if (leftNodes != NULL) {
+    if ((directions & 0b1000) && leftNodes != NULL) {
         // Receive data from the left, and keep the output request to be waited on
         MPI_Irecv(leftNodes, sizeof(Node) * rows, MPI_CHAR,
                 MPI_ANY_SOURCE, RIGHT_TAG, MPI_COMM_WORLD, receiveRequests + requestCount);
@@ -591,8 +593,12 @@ void receiveBoundaryNodes(Block *block) {
 }
 
 int isIsolatedCorner(Block *block) {
-    return (block->rows == 1 && (block->i == 0 || block->i == N - 1))
-            || (block->cols == 1 && (block->j == 0 || block->j == N - 1));
+    return (block->rows == 1 || block->cols == 1) && (
+        (block->i == 0 && block->j == 0)
+        || (block->i == 0 && block->j + block->cols == N)
+        || (block->i + block->rows == N && block->j == 0)
+        || (block->i + block->rows == N && block->j + block->cols == N)
+    );
 }
 
 int isNextToIsolatedCorner(Block *block) {
@@ -607,21 +613,28 @@ int isNextToIsolatedCorner(Block *block) {
 }
 
 void sendNodesToCorner(Partition *partition, Block *block) {
-    unsigned directionsToCorner = 0;
+    unsigned directionsToCorner;
     if (block->i == 1) {
-        directionsToCorner |= 0b1;
+        directionsToCorner = 0b100;
+    } else if (block->j == 1) {
+        directionsToCorner = 0b1000;
+    } else if (block->i + block->rows == N - 1) {
+        directionsToCorner = 0b1;
+    } else if (block->j + block->cols == N - 1) {
+        directionsToCorner = 0b10;
     }
-    if (block->j == 1) {
-        directionsToCorner |= 0b1000;
+    sendBoundaryNodes(partition, block, directionsToCorner);
+}
+
+void cornersReceiveNodes(Block *block) {
+    unsigned directionsFromCorner = 0;
+    if (block->rows == 1) {
+        directionsFromCorner |= 0b101;
     }
-    if (block->i + block->rows == N - 1) {
-        directionsToCorner |= 0b100;
+    if (block->cols == 1) {
+        directionsFromCorner |= 0b1010;
     }
-    if (block->j + block->cols == N - 1) {
-        directionsToCorner |= 0b10;
-    }
-    printf("%#x\n", directionsToCorner);
-    //sendBoundaryNodes(partition, block, directionsToCorner);
+    receiveBoundaryNodes(block, directionsFromCorner);
 }
 
 /*
@@ -631,14 +644,16 @@ void updateBlock(Partition *partition, Block *block) {
     updateBlockGridMiddle(block);
 
     sendBoundaryNodes(partition, block, 0b1111);
-    receiveBoundaryNodes(block);
+    receiveBoundaryNodes(block, 0b1111);
 
     updateBlockGridEdges(block);
 
-    if (isIsolatedCorner(block)) {
-        //receiveBoundaryNodes(block);
-    } else if (isNextToIsolatedCorner(block)) {
+    MPI_Barrier(MPI_COMM_WORLD);
+    if (isNextToIsolatedCorner(block)) {
         sendNodesToCorner(partition, block);
+    }
+    if (isIsolatedCorner(block)) {
+        cornersReceiveNodes(block);
     }
 
     updateBlockGridCorners(block);
