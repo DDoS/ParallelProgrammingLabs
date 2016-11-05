@@ -680,30 +680,31 @@ void cornersReceiveNodes(Block *block) {
     Performs one an update of a block for one iteration
 */
 void updateBlock(Partition *partition, Block *block) {
+    // Communicate all data accross all nodes
     sendBoundaryNodes(partition, block, 0b1111);
     receiveBoundaryNodes(block, 0b1111);
-
+    // Update only the middle nodes
     updateBlockGridMiddle(block);
-
-    MPI_Barrier(MPI_COMM_WORLD);
+    // Send the middle data to the edges
+    // if there is a boundary between them
     if (isNextToIsolateEdge(block)) {
         sendNodesToEdges(partition, block);
     }
     if (isIsolatedEdge(block)) {
         edgesReceiveNodes(block);
     }
-
+    // Update the edge nodes
     updateBlockGridEdges(block);
-
-    MPI_Barrier(MPI_COMM_WORLD);
+    // Send the middle and edge data to the corners
+    // if there is a boundary between them
     if (isNextToIsolatedCorner(block)) {
         sendNodesToCorners(partition, block);
     }
     if (isIsolatedCorner(block)) {
         cornersReceiveNodes(block);
     }
-
+    // Update the corner nodes
     updateBlockGridCorners(block);
-
+    // Update the age of the values
     updateBlockValueAge(block);
 }
