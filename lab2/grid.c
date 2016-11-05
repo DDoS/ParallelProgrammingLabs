@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <math.h>
+#include <stdio.h>
 
 #include <mpi.h>
 
@@ -152,6 +153,88 @@ void updateBlockGridMiddle(Block *block) {
     unsigned rows = block->rows;
     unsigned cols = block->cols;
     Node *nodes = block->nodes;
+    Node *aboveNodes = block->aboveNodes;
+    Node *rightNodes = block->rightNodes;
+    Node *belowNodes = block->belowNodes;
+    Node *leftNodes = block->leftNodes;
+    // Specical cases when we have only one row or column
+    if (rows == 1) {
+        if (cols == 1) {
+            // For an individual node, it's only a middle node if surrounded by other nodes on all sides
+            if (aboveNodes != NULL && rightNodes != NULL && belowNodes != NULL && leftNodes != NULL) {
+                updateNode(ni, nj, nodes, aboveNodes, rightNodes, belowNodes, leftNodes);
+            }
+            return;
+        }
+        // For a single row, it's only a middle node if it has nodes above an below
+        if (aboveNodes != NULL && belowNodes != NULL) {
+            unsigned ii = 0;
+            for (unsigned jj = 1; jj < cols - 1; jj++) {
+                Node *n = nodes + (ii + jj * rows);
+                Node *a = aboveNodes + jj;
+                Node *r = nodes + (ii + (jj + 1) * rows);
+                Node *b = belowNodes + jj;
+                Node *l = nodes + (ii + (jj - 1) * rows);
+                updateNode(ni + ii, nj + jj, n, a, r, b, l);
+            }
+            // Update the right end of the row, if we have a node on the right
+            if (rightNodes != NULL) {
+                unsigned jj = cols - 1;
+                Node *n = nodes + (ii + jj * rows);
+                Node *a = aboveNodes + jj;
+                Node *r = rightNodes + ii;
+                Node *b = belowNodes + jj;
+                Node *l = nodes + (ii + (jj - 1) * rows);
+                updateNode(ni + ii, nj + jj, n, a, r, b, l);
+            }
+            // Update the left end of the row, if we have a node on the left
+            if (leftNodes != NULL) {
+                unsigned jj = 0;
+                Node *n = nodes + (ii + jj * rows);
+                Node *a = aboveNodes + jj;
+                Node *r = nodes + (ii + (jj + 1) * rows);
+                Node *b = belowNodes + jj;
+                Node *l = leftNodes + ii;
+                updateNode(ni + ii, nj + jj, n, a, r, b, l);
+            }
+        }
+        return;
+    }
+    if (cols == 1) {
+        // For a single column, it's only a middle node if it has nodes above an below
+        if (rightNodes != NULL && leftNodes != NULL) {
+            unsigned jj = 0;
+            for (unsigned ii = 1; ii < rows - 1; ii++) {
+                Node *n = nodes + (ii + jj * rows);
+                Node *a = nodes + ((ii + 1) + jj * rows);
+                Node *r = rightNodes + ii;
+                Node *b = nodes + ((ii - 1) + jj * rows);
+                Node *l = leftNodes + ii;
+                updateNode(ni + ii, nj + jj, n, a, r, b, l);
+            }
+            // Update the upper end of the column, if we have a node above
+            if (aboveNodes != NULL) {
+                unsigned ii = rows - 1;
+                Node *n = nodes + (ii + jj * rows);
+                Node *a = aboveNodes + jj;
+                Node *r = rightNodes + ii;
+                Node *b = nodes + ((ii - 1) + jj * rows);
+                Node *l = leftNodes + ii;
+                updateNode(ni + ii, nj + jj, n, a, r, b, l);
+            }
+            // Update the lower end of the column, if we have a node below
+            if (belowNodes != NULL) {
+                unsigned ii = 0;
+                Node *n = nodes + (ii + jj * rows);
+                Node *a = nodes + ((ii + 1) + jj * rows);
+                Node *r = rightNodes + ii;
+                Node *b = belowNodes + jj;
+                Node *l = leftNodes + ii;
+                updateNode(ni + ii, nj + jj, n, a, r, b, l);
+            }
+        }
+        return;
+    }
     // Start with the nodes in the middle of the block
     for (unsigned jj = 1; jj < cols - 1; jj++) {
         for (unsigned ii = 1; ii < rows - 1; ii++) {
@@ -164,7 +247,6 @@ void updateBlockGridMiddle(Block *block) {
         }
     }
     // Update the upper edge nodes, if we have nodes above
-    Node *aboveNodes = block->aboveNodes;
     if (aboveNodes != NULL) {
         unsigned ii = rows - 1;
         for (unsigned jj = 1; jj < cols - 1; jj++) {
@@ -177,7 +259,6 @@ void updateBlockGridMiddle(Block *block) {
         }
     }
     // Update the right edge nodes, if we have nodes on the right
-    Node *rightNodes = block->rightNodes;
     if (rightNodes != NULL) {
         unsigned jj = cols - 1;
         for (unsigned ii = 1; ii < rows - 1; ii++) {
@@ -189,8 +270,7 @@ void updateBlockGridMiddle(Block *block) {
             updateNode(ni + ii, nj + jj, n, a, r, b, l);
         }
     }
-    // Update the lower edge nodes, if we have nodes bellow
-    Node *belowNodes = block->belowNodes;
+    // Update the lower edge nodes, if we have nodes below
     if (belowNodes != NULL) {
         unsigned ii = 0;
         for (unsigned jj = 1; jj < cols - 1; jj++) {
@@ -203,7 +283,6 @@ void updateBlockGridMiddle(Block *block) {
         }
     }
     // Update the left edge nodes, if we have nodes on the left
-    Node *leftNodes = block->leftNodes;
     if (leftNodes != NULL) {
         unsigned jj = 0;
         for (unsigned ii = 1; ii < rows - 1; ii++) {
@@ -264,7 +343,7 @@ void updateBlockGridMiddle(Block *block) {
 /*
     Performs one block update, only for the edge nodes
 */
-void updateBlockGridEdge(Block *block) {
+void updateBlockGridEdges(Block *block) {
     unsigned ni = block->i;
     unsigned nj = block->j;
     unsigned rows = block->rows;
@@ -284,11 +363,8 @@ void updateBlockGridEdge(Block *block) {
         unsigned ii = rows - 1;
         for (unsigned jj = startCol; jj < endCol; jj++) {
             Node *n = nodes + (ii + jj * rows);
-            Node *a = NULL;
-            Node *r = nodes + (ii + (jj + 1) * rows);
-            Node *b = nodes + ((ii - 1) + jj * rows);
-            Node *l = nodes + (ii + (jj - 1) * rows);
-            updateNode(ni + ii, nj + jj, n, a, r, b, l);
+            Node *b = rows == 1 ? belowNodes + jj : nodes + ((ii - 1) + jj * rows);
+            updateNode(ni + ii, nj + jj, n, NULL, NULL, b, NULL);
         }
     }
     // The lack of nodes on the right means this is the right edge
@@ -296,23 +372,17 @@ void updateBlockGridEdge(Block *block) {
         unsigned jj = cols - 1;
         for (unsigned ii = startRow; ii < endRow; ii++) {
             Node *n = nodes + (ii + jj * rows);
-            Node *a = nodes + ((ii + 1) + jj * rows);
-            Node *r = NULL;
-            Node *b = nodes + ((ii - 1) + jj * rows);
-            Node *l = nodes + (ii + (jj - 1) * rows);
-            updateNode(ni + ii, nj + jj, n, a, r, b, l);
+            Node *l = cols == 1 ? leftNodes + ii : nodes + (ii + (jj - 1) * rows);
+            updateNode(ni + ii, nj + jj, n, NULL, NULL, NULL, l);
         }
     }
-    // The lack of nodes bellow means this is the lower edge
+    // The lack of nodes below means this is the lower edge
     if (belowNodes == NULL) {
         unsigned ii = 0;
         for (unsigned jj = startCol; jj < endCol; jj++) {
             Node *n = nodes + (ii + jj * rows);
-            Node *a = nodes + ((ii + 1) + jj * rows);
-            Node *r = nodes + (ii + (jj + 1) * rows);
-            Node *b = NULL;
-            Node *l = nodes + (ii + (jj - 1) * rows);
-            updateNode(ni + ii, nj + jj, n, a, r, b, l);
+            Node *a = rows == 1 ? aboveNodes + jj : nodes + ((ii + 1) + jj * rows);
+            updateNode(ni + ii, nj + jj, n, a, NULL, NULL, NULL);
         }
     }
     // The lack of nodes on the left means this is the left edge
@@ -320,56 +390,56 @@ void updateBlockGridEdge(Block *block) {
         unsigned jj = 0;
         for (unsigned ii = startRow; ii < endRow; ii++) {
             Node *n = nodes + (ii + jj * rows);
-            Node *a = nodes + ((ii + 1) + jj * rows);
-            Node *r = nodes + (ii + (jj + 1) * rows);
-            Node *b = nodes + ((ii - 1) + jj * rows);
-            Node *l = NULL;
-            updateNode(ni + ii, nj + jj, n, a, r, b, l);
+            Node *r = cols == 1 ? rightNodes + ii : nodes + (ii + (jj + 1) * rows);
+            updateNode(ni + ii, nj + jj, n, NULL, r, NULL, NULL);
         }
     }
+}
+
+/*
+    Performs one block update, only for the corner nodes
+*/
+void updateBlockGridCorners(Block *block) {
+    unsigned ni = block->i;
+    unsigned nj = block->j;
+    unsigned rows = block->rows;
+    unsigned cols = block->cols;
+    Node *nodes = block->nodes;
+    Node *aboveNodes = block->aboveNodes;
+    Node *rightNodes = block->rightNodes;
+    Node *belowNodes = block->belowNodes;
+    Node *leftNodes = block->leftNodes;
     // The lack of nodes on the upper and right edges means this is the upper right corner
     if (aboveNodes == NULL && rightNodes == NULL) {
         unsigned ii = rows - 1;
         unsigned jj = cols - 1;
         Node *n = nodes + (ii + jj * rows);
-        Node *a = NULL;
-        Node *r = NULL;
-        Node *b = nodes + ((ii - 1) + jj * rows);
-        Node *l = nodes + (ii + (jj - 1) * rows);
-        updateNode(ni + ii, nj + jj, n, a, r, b, l);
+        Node *b = rows == 1 ? belowNodes + jj : nodes + ((ii - 1) + jj * rows);
+        updateNode(ni + ii, nj + jj, n, NULL, NULL, b, NULL);
     }
     // The lack of nodes on the bottom and right edges means this is the lower right corner
     if (belowNodes == NULL && rightNodes == NULL) {
         unsigned ii = 0;
         unsigned jj = cols - 1;
         Node *n = nodes + (ii + jj * rows);
-        Node *a = nodes + ((ii + 1) + jj * rows);
-        Node *r = NULL;
-        Node *b = NULL;
-        Node *l = nodes + (ii + (jj - 1) * rows);
-        updateNode(ni + ii, nj + jj, n, a, r, b, l);
+        Node *l = cols == 1 ? leftNodes + ii : nodes + (ii + (jj - 1) * rows);
+        updateNode(ni + ii, nj + jj, n, NULL, NULL, NULL, l);
     }
     // The lack of nodes on the bottom and left edges means this is the lower left corner
     if (belowNodes == NULL && leftNodes == NULL) {
         unsigned ii = 0;
         unsigned jj = 0;
         Node *n = nodes + (ii + jj * rows);
-        Node *a = nodes + ((ii + 1) + jj * rows);
-        Node *r = nodes + (ii + (jj + 1) * rows);
-        Node *b = NULL;
-        Node *l = NULL;
-        updateNode(ni + ii, nj + jj, n, a, r, b, l);
+        Node *r = cols == 1 ? rightNodes + ii : nodes + (ii + (jj + 1) * rows);
+        updateNode(ni + ii, nj + jj, n, NULL, r, NULL, NULL);
     }
     // The lack of nodes on the upper and left edges means this is the upper left corner
     if (aboveNodes == NULL && leftNodes == NULL) {
         unsigned ii = rows - 1;
         unsigned jj = 0;
         Node *n = nodes + (ii + jj * rows);
-        Node *a = NULL;
-        Node *r = nodes + (ii + (jj + 1) * rows);
-        Node *b = nodes + ((ii - 1) + jj * rows);
-        Node *l = NULL;
-        updateNode(ni + ii, nj + jj, n, a, r, b, l);
+        Node *b = rows == 1 ? belowNodes + jj : nodes + ((ii - 1) + jj * rows);
+        updateNode(ni + ii, nj + jj, n, NULL, NULL, b, NULL);
     }
 }
 
@@ -411,7 +481,7 @@ void updateBlockValueAge(Block *block) {
     }
 }
 
-void communicateBoundaryNodes(Partition *partition, Block *block) {
+void sendBoundaryNodes(Partition *partition, Block *block, unsigned directions) {
     unsigned rows = block->rows;
     unsigned cols = block->cols;
     Node *nodes = block->nodes;
@@ -424,7 +494,7 @@ void communicateBoundaryNodes(Partition *partition, Block *block) {
     static MPI_Datatype rowType;
     static int rowTypeCached = 0;
     if (!rowTypeCached) {
-        // "cols" elements, of size "sizeof(Node)" bytes , every "sizeof(Node) * cols" bytes
+        // "cols" elements, of size "sizeof(Node)" bytes, every "sizeof(Node) * cols" bytes
         MPI_Type_vector(cols, sizeof(Node), sizeof(Node) * cols, MPI_CHAR, &rowType);
         MPI_Type_commit(&rowType);
         rowTypeCached = 1;
@@ -432,9 +502,9 @@ void communicateBoundaryNodes(Partition *partition, Block *block) {
     // Receive requests, so we can wait for reception
     MPI_Request receiveRequests[4];
     unsigned requestCount = 0;
-    // Exchange on upper boundary, if it exists
+    // Send on upper boundary, if it exists
     Node *aboveNodes = block->aboveNodes;
-    if (aboveNodes != NULL) {
+    if ((directions & 0b1) && aboveNodes != NULL) {
         // Calculate the index of the process above
         unsigned indexAbove = (bi + 1) + bj * partitionRows;
         // Send above and ignore the output request
@@ -442,14 +512,10 @@ void communicateBoundaryNodes(Partition *partition, Block *block) {
         MPI_Isend(nodes + (rows - 1), 1, rowType,
                 indexAbove, ABOVE_TAG, MPI_COMM_WORLD, &dataRequest);
         MPI_Request_free(&dataRequest);
-        // Receive data from above, and keep the output request to be waited on
-        MPI_Irecv(aboveNodes, sizeof(Node) * cols, MPI_CHAR,
-                indexAbove, BELOW_TAG, MPI_COMM_WORLD, receiveRequests + requestCount);
-        requestCount++;
     }
-    // Exchange on right boundary, if it exists
+    // Send on right boundary, if it exists
     Node *rightNodes = block->rightNodes;
-    if (rightNodes != NULL) {
+    if ((directions & 0b10) && rightNodes != NULL) {
         // Calculate the index of the process to the right
         unsigned indexRight = bi + (bj + 1) * partitionRows;
         // Send to the right and ignore the output request
@@ -457,14 +523,10 @@ void communicateBoundaryNodes(Partition *partition, Block *block) {
         MPI_Isend(nodes + rows * (cols - 1), sizeof(Node) * rows, MPI_CHAR,
                 indexRight, RIGHT_TAG, MPI_COMM_WORLD, &dataRequest);
         MPI_Request_free(&dataRequest);
-        // Receive data from the right, and keep the output request to be waited on
-        MPI_Irecv(rightNodes, sizeof(Node) * rows, MPI_CHAR,
-                indexRight, LEFT_TAG, MPI_COMM_WORLD, receiveRequests + requestCount);
-        requestCount++;
     }
-    // Exchange on lower boundary, if it exists
+    // Send on lower boundary, if it exists
     Node *belowNodes = block->belowNodes;
-    if (belowNodes != NULL) {
+    if ((directions & 0b100) && belowNodes != NULL) {
         // Calculate the index of the process below
         unsigned indexBelow = (bi - 1) + bj * partitionRows;
         // Send below and ignore the output request
@@ -472,14 +534,10 @@ void communicateBoundaryNodes(Partition *partition, Block *block) {
         MPI_Isend(nodes, 1, rowType,
                 indexBelow, BELOW_TAG, MPI_COMM_WORLD, &dataRequest);
         MPI_Request_free(&dataRequest);
-        // Receive data from below, and keep the output request to be waited on
-        MPI_Irecv(belowNodes, sizeof(Node) * cols, MPI_CHAR,
-                indexBelow, ABOVE_TAG, MPI_COMM_WORLD, receiveRequests + requestCount);
-        requestCount++;
     }
-    // Exchange on left boundary, if it exists
+    // Send on left boundary, if it exists
     Node *leftNodes = block->leftNodes;
-    if (leftNodes != NULL) {
+    if ((directions & 0b1000) && leftNodes != NULL) {
         // Calculate the index of the process to the left
         unsigned indexLeft = bi + (bj - 1) * partitionRows;
         // Send to the left and ignore the output request
@@ -487,13 +545,83 @@ void communicateBoundaryNodes(Partition *partition, Block *block) {
         MPI_Isend(nodes, sizeof(Node) * rows, MPI_CHAR,
                 indexLeft, LEFT_TAG, MPI_COMM_WORLD, &dataRequest);
         MPI_Request_free(&dataRequest);
+    }
+}
+
+void receiveBoundaryNodes(Block *block) {
+    unsigned rows = block->rows;
+    unsigned cols = block->cols;
+    // Receive requests, so we can wait for reception
+    MPI_Request receiveRequests[4];
+    unsigned requestCount = 0;
+    // Receive on upper boundary, if it exists
+    Node *aboveNodes = block->aboveNodes;
+    if (aboveNodes != NULL) {
+        // Receive data from above, and keep the output request to be waited on
+        MPI_Irecv(aboveNodes, sizeof(Node) * cols, MPI_CHAR,
+                MPI_ANY_SOURCE, BELOW_TAG, MPI_COMM_WORLD, receiveRequests + requestCount);
+        requestCount++;
+    }
+    // Receive on right boundary, if it exists
+    Node *rightNodes = block->rightNodes;
+    if (rightNodes != NULL) {
+        // Receive data from the right, and keep the output request to be waited on
+        MPI_Irecv(rightNodes, sizeof(Node) * rows, MPI_CHAR,
+                MPI_ANY_SOURCE, LEFT_TAG, MPI_COMM_WORLD, receiveRequests + requestCount);
+        requestCount++;
+    }
+    // Receive on lower boundary, if it exists
+    Node *belowNodes = block->belowNodes;
+    if (belowNodes != NULL) {
+        // Receive data from below, and keep the output request to be waited on
+        MPI_Irecv(belowNodes, sizeof(Node) * cols, MPI_CHAR,
+                MPI_ANY_SOURCE, ABOVE_TAG, MPI_COMM_WORLD, receiveRequests + requestCount);
+        requestCount++;
+    }
+    // Receive on left boundary, if it exists
+    Node *leftNodes = block->leftNodes;
+    if (leftNodes != NULL) {
         // Receive data from the left, and keep the output request to be waited on
         MPI_Irecv(leftNodes, sizeof(Node) * rows, MPI_CHAR,
-                indexLeft, RIGHT_TAG, MPI_COMM_WORLD, receiveRequests + requestCount);
+                MPI_ANY_SOURCE, RIGHT_TAG, MPI_COMM_WORLD, receiveRequests + requestCount);
         requestCount++;
     }
     // Wait for all the data to have been received before continuing
     MPI_Waitall(requestCount, receiveRequests, MPI_STATUSES_IGNORE);
+}
+
+int isIsolatedCorner(Block *block) {
+    return (block->rows == 1 && (block->i == 0 || block->i == N - 1))
+            || (block->cols == 1 && (block->j == 0 || block->j == N - 1));
+}
+
+int isNextToIsolatedCorner(Block *block) {
+    return (block->j == 0 && block->i == 1)
+        || (block->i == 0 && block->j == 1)
+        || (block->j == 0 && block->i + block->rows == N - 1)
+        || (block->i == 0 && block->j + block->cols == N - 1)
+        || (block->j + block->cols == N && block->i == 1)
+        || (block->i + block->rows == N && block->j == 1)
+        || (block->j + block->cols == N && block->i + block->rows == N - 1)
+        || (block->i + block->rows == N && block->j + block->cols == N - 1);
+}
+
+void sendNodesToCorner(Partition *partition, Block *block) {
+    unsigned directionsToCorner = 0;
+    if (block->i == 1) {
+        directionsToCorner |= 0b1;
+    }
+    if (block->j == 1) {
+        directionsToCorner |= 0b1000;
+    }
+    if (block->i + block->rows == N - 1) {
+        directionsToCorner |= 0b100;
+    }
+    if (block->j + block->cols == N - 1) {
+        directionsToCorner |= 0b10;
+    }
+    printf("%#x\n", directionsToCorner);
+    //sendBoundaryNodes(partition, block, directionsToCorner);
 }
 
 /*
@@ -501,7 +629,19 @@ void communicateBoundaryNodes(Partition *partition, Block *block) {
 */
 void updateBlock(Partition *partition, Block *block) {
     updateBlockGridMiddle(block);
-    communicateBoundaryNodes(partition, block);
-    updateBlockGridEdge(block);
+
+    sendBoundaryNodes(partition, block, 0b1111);
+    receiveBoundaryNodes(block);
+
+    updateBlockGridEdges(block);
+
+    if (isIsolatedCorner(block)) {
+        //receiveBoundaryNodes(block);
+    } else if (isNextToIsolatedCorner(block)) {
+        sendNodesToCorner(partition, block);
+    }
+
+    updateBlockGridCorners(block);
+
     updateBlockValueAge(block);
 }

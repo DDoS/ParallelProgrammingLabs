@@ -49,11 +49,17 @@ void doProcessWork(Partition *partition, unsigned index, unsigned iterationCount
             block.aboveNodes[N_HALF - block.j].u1 += 1;
         }
     }
-    // Wait for all processes to be ready for an iteration
-    MPI_Barrier(MPI_COMM_WORLD);
-    // Do an update
-    updateBlock(partition, &block);
-    // Print out the result
+    // Perform the iterations
+    for (unsigned i = 0; i < iterationCount; i++) {
+        // Wait for all processes to be ready for an iteration
+        MPI_Barrier(MPI_COMM_WORLD);
+        // Do an update
+        updateBlock(partition, &block);
+        // Print out the result
+        if (containsMiddle) {
+            printf("%0.6f\n", block.nodes[(N_HALF - block.i) + (N_HALF - block.j) * block.rows].u);
+        }
+    }
     printGrid(&block);
     printf("\n");
 }
