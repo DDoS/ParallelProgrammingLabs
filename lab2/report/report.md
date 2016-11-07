@@ -18,5 +18,7 @@ In a 4 by 4 grid, there are 16 elements. In this lab, 16 processes are used in o
 
 In a 512 by 512 grid, there are 262 144 elements. In this case, we cannot assign a block per finite element. This means that we will be using 16 blocks containing  262144/16= 16 384 elements each. However, the scheme works the same way. It updates all the nodes with respect to the surrounding nodes. 
 
+
+
 ##Discussion on the results
 First of all, the results of our program are well within the expected uncertainty. 
