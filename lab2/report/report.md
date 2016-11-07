@@ -21,4 +21,11 @@ In a 512 by 512 grid, there are 262 144 elements. In this case, we cannot assign
 
 
 ##Discussion on the results
-First of all, the results of our program are well within the expected uncertainty. 
+First of all, the results of our program are well within the expected uncertainty since our mean squared error is equal to 0.000000 if we compare the output array in output.h versuses the values of running the following command:
+
+mpirun -np 16 ./grid_512_512 2000
+
+To check if our result and the output example are equals, we simply redirect the printing to a file called outputProg.h and modified the file to make it an array declaration. Then, we used the small program called checkOutput.c to see if they were equals. The program simply calculates the mean squared value of both arrays of 2000 size and output the value.
+
+
+
