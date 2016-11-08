@@ -25,7 +25,14 @@ First of all, the results of our program are well within the expected uncertaint
 
 mpirun -np 16 ./grid_512_512 2000
 
-To check if our result and the output example are equals, we simply redirect the printing to a file called outputProg.h and modified the file to make it an array declaration. Then, we used the small program called checkOutput.c to see if they were equals. The program simply calculates the mean squared value of both arrays of 2000 size and output the value.
+To check if our result and the output example are equals, we simply redirect the printing to a file called outputProg.h by using th efollowing command:
+
+mpirun -np 16 ./grid_512_512 2000 >> outputProg.h
+
+We then modified the file to make it an array declaration. Then, we used the small program called checkOutput.c to see if they were equals. The program simply calculates the mean squared value of both arrays of 2000 size and output the value.
+
+##Conclusion
+From the result that we get, our program does indeed aatisfies the mean squared value of 0.00001 since our mean square value is equal to 0.00000. It was programmed using mpi and fully parallelized by splitting our grid into a partition of 16 blocks, each containing a set of nodes and surrounding nodes. Each process has a block and performs the calculations on the nodes it contains by using the given formula and initial conditions.
 
 
 
