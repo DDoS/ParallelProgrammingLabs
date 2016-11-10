@@ -31,9 +31,11 @@ mpirun -np 16 ./grid_512_512 2000 >> outputProg.h
 We then modified the file to make it an array declaration. Then, we used the small program called checkOutput.c to see if they were equals. The program simply calculates the mean squared value of both arrays of 2000 size and output the value.
 
 ##Performance (1 to 32 processes used)
-Before starting, it is important to mention that the testing took place on the Trottier (5fth floor) computers. Those computers have a Intel (R) i5 CPU with a frequency of 3.2 GHz. They have a total of 2 cores.
+Before starting, ut us improtant to mention that this performance test was performed on a mid 2010 MacBook Pro, with a dual core Intel i7 at 2.66GHz. This CPU supports HyperThreading, which gives us 4 logical threads. Note that we tested performance by using a 512 by 512 grid and the bash time function. Its implementation can be shown below. 
 
-Our first guess was that the speed up of our program would be high due to the high parallelizability of our scheme. The following graph shows the speedup of our program compared with the number of processes used for a total of 2000 iterations.
+time mpirun -np <1,2,4,8,16 or 32> ./grid_512_512 2000
+
+Our first guess was that the speed up of our program would be high due to the high parallelizability of our scheme, but would cap at 4 processes. The following graph shows the speedup of our program compared with the number of processes used for a total of 2000 iterations.
 
 ![graphSpeedup Image](speedupImage.jpg)
 
