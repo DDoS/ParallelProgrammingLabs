@@ -37,6 +37,15 @@ time mpirun -np <1,2,4,8,16 or 32> ./grid_512_512 2000
 
 Our first guess was that the speed up of our program would be high due to the high parallelizability of our scheme, but would cap at 4 processes. The following graph shows the speedup of our program compared with the number of processes used for a total of 2000 iterations.
 
+|Thread count|Time (seconds)|
+|------------|--------------|
+|1           |20.635        |
+|2           |10.685        |
+|4           |10.2          |
+|8           |9.297         |
+|16          |9.669         |
+|32          |11.594        |
+
 ![graphSpeedup Image](speedupImage.jpg)
 
 As expected, the speed up of our program goes as high as 19.61 for 32 processes used. We also notice that the speedup relation almost makes a straight line. We can conclude from this that the overhead of creating multiple threads does not impact the speed up in a significant way and also implies that our scheme is well parallelized.
