@@ -24,9 +24,13 @@ grid_4_4: main.o grid.o
 grid_512_512: main.o grid.o
 	$(CC) $(CCFLAGS) -o grid_512_512 main.o grid.o -lm
 
+checkOutput: checkOutput.c output.h outputProg.h
+	$(CC) $(CCFLAGS) -o checkOutput checkOutput.c
+
 cleanObjs:
 	rm -f *.o
 
 clean: cleanObjs
 	rm -f grid_4_4
 	rm -f grid_512_512
+	rm -f checkOutput
