@@ -48,7 +48,7 @@ Our first guess was that the speed up of our program would be high due to the hi
 
 ![graphSpeedup Image](speedupImage.jpg)
 
-The speed up of our program goes as high as 2.21 for 8 processes used. We also notice that the speedup relation . We can conclude from this that the overhead of creating multiple threads does not impact the speed up in a significant way and also implies that our scheme is well parallelized.
+The speed up of our program goes as high as 2.22 for 8 processes used. We also notice that the speedup relation cap at 8 threads instead of 4 threads. We can conclude from this that the overhead of creating multiple threads does not impact the speed up in a significant way until the 16 process mark and also implies that our scheme is well parallelized.
 
 ## Conclusion
 From the result that we get, our program does indeed satisfies the mean squared value of `0.00001` since our mean square value is equal to `0.00000`. It was programmed using mpi and fully parallelized by splitting our grid into a partition of P blocks (where P is the number of processes used), each containing a set of nodes and surrounding nodes. Each process has a block and performs the calculations on the nodes it contains by using the given formula and initial conditions.
