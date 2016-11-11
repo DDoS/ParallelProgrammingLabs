@@ -28,10 +28,10 @@ To check if our result and the output example are equals, we simply redirect the
 
 mpirun -np 16 ./grid_512_512 2000 >> outputProg.h
 
-We then modified the file to make it an array declaration. Then, we used the small program called checkOutput.c to see if they were equals. The program simply calculates the mean squared value of both arrays of 2000 size and output the value.
+We then modified the file to make it an array declaration. After this, we used the small program called checkOutput.c to see if they were equals. The program simply calculates the mean squared value of both arrays of 2000 size and output the value.
 
 ##Performance (1 to 32 processes used)
-Before starting, ut us improtant to mention that this performance test was performed on a mid 2010 MacBook Pro, with a dual core Intel i7 at 2.66GHz. This CPU supports HyperThreading, which gives us 4 logical threads. Note that we tested performance by using a 512 by 512 grid and the bash time function. Its implementation can be shown below. 
+Before starting, it is improtant to mention that this performance test was performed on a mid 2010 MacBook Pro, with a dual core Intel i7 at 2.66GHz. This CPU supports HyperThreading, which gives us 4 logical threads. Note that we tested performance by using a 512 by 512 grid and the bash time function. Its implementation can be shown below. 
 
 time mpirun -np <1,2,4,8,16 or 32> ./grid_512_512 2000
 
@@ -48,7 +48,7 @@ Our first guess was that the speed up of our program would be high due to the hi
 
 ![graphSpeedup Image](speedupImage.jpg)
 
-The speed up of our program goes as high as 2.22 for 8 processes used. We also notice that the speedup relation cap at 8 threads instead of 4 threads. We can conclude from this that the overhead of creating multiple threads does not impact the speed up in a significant way until the 16 process mark and also implies that our scheme is well parallelized.
+The speed up of our program goes as high as 2.22 for 8 processes used. We also notice that the speedup relation cap at 8 threads instead of 4 threads. We can conclude from this that the overhead of creating multiple threads does not impact the speed up in a significant way until the 16 processes mark and also implies that our scheme is well parallelized.
 
 ## Conclusion
 From the result that we get, our program does indeed satisfies the mean squared value of `0.00001` since our mean square value is equal to `0.00000`. It was programmed using mpi and fully parallelized by splitting our grid into a partition of P blocks (where P is the number of processes used), each containing a set of nodes and surrounding nodes. Each process has a block and performs the calculations on the nodes it contains by using the given formula and initial conditions.
