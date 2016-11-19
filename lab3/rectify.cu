@@ -13,7 +13,7 @@ __global__ void transform(unsigned char* output, cudaTextureObject_t texture, un
         return;
     }
     // Read the pixel data from the texture
-    int4 pixel = tex2D<int4>(texture, x, y);
+    uint4 pixel = tex2D<uint4>(texture, x, y);
     // Calculate the output pixel address
     unsigned char* outputPixelAddress = output + (y * width + x) * 4;
     // Set the rectified pixel components (ignoring the alpha component)
