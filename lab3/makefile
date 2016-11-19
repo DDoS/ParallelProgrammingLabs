@@ -1,5 +1,5 @@
-CC := nvcc
-CCFLAGS := -std=c99
+CC = nvcc
+CCFLAGS =
 
 .PHONY: cleanObjs clean
 
