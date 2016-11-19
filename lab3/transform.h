@@ -1,2 +1,2 @@
-// This method is implemented by rectify.c, pool.c and convolve.c
-void transform(unsigned char **image, unsigned *width, unsigned *height, unsigned threadCount);
+// This method is implemented by rectify.cu, pool.cu and convolve.cu
+__global__ void transform(unsigned char* output, cudaTextureObject_t texture, int width, int height);
