@@ -1,6 +1,10 @@
 #include "transform.h"
 
-__global__ void transform(unsigned char* output, cudaTextureObject_t texture, int width, int height) {
+void getOutputSize(unsigned* width, unsigned* height) {
+    // Same size
+}
+
+__global__ void transform(unsigned char* output, cudaTextureObject_t texture, unsigned width, unsigned height) {
     // Calculate texture coordinates
     unsigned x = blockIdx.x * blockDim.x + threadIdx.x;
     unsigned y = blockIdx.y * blockDim.y + threadIdx.y;

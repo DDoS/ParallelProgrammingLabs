@@ -76,6 +76,8 @@ int main(int argc, char* argv[]) {
     // Copy the image data to the GPU
     unsigned imageByteSize = pixelCount * sizeof(unsigned char) * 4;
     cudaMemcpyToArray(cuArray, 0, 0, image, imageByteSize, cudaMemcpyHostToDevice);
+    // Delete the image since we no longer need it
+    free(image);
     // Create a resource description for the texture using the array
     struct cudaResourceDesc resDesc;
     memset(&resDesc, 0, sizeof(resDesc));
@@ -92,9 +94,14 @@ int main(int argc, char* argv[]) {
     // Create texture object
     cudaTextureObject_t texture = 0;
     cudaCreateTextureObject(&texture, &resDesc, &texDesc, NULL);
-    // Allocate result of transformation in device memory
+    // Get the size of the output from the input
+    unsigned outputWidth = width;
+    unsigned outputHeight = height;
+    getOutputSize(&outputWidth, &outputHeight);
+    // Allocate the output of transformation on the GPU
+    unsigned imageOutputByteSize = outputWidth * outputHeight * sizeof(unsigned char) * 4;
     unsigned char* output;
-    cudaMalloc(&output, imageByteSize);
+    cudaMalloc(&output, imageOutputByteSize);
     // Check for a CUDA error when creating the texture
     cudaError_t error = cudaGetLastError();
     if (error != cudaSuccess) {
@@ -124,8 +131,10 @@ int main(int argc, char* argv[]) {
 #endif // MACH_TIMING
     // Print the time taken
     printf("took about %.5f seconds\n", 1e-9 * elapsedNano);
+    // Allocate some some CPU side memory for the output image
+    unsigned char* imageOut = (unsigned char*) malloc(imageOutputByteSize);
     // Copy the output from the GPU back into the image
-    cudaMemcpy(image, output, imageByteSize, cudaMemcpyDeviceToHost);
+    cudaMemcpy(imageOut, output, imageOutputByteSize, cudaMemcpyDeviceToHost);
     // Destroy texture object
     cudaDestroyTextureObject(texture);
     // Free device memory
@@ -138,12 +147,10 @@ int main(int argc, char* argv[]) {
         return -1;
     }
     // Save the results
-    unsigned outputError = lodepng_encode32_file(outputName, image, width, height);
+    unsigned outputError = lodepng_encode32_file(outputName, imageOut, outputWidth, outputHeight);
     if (outputError) {
         printf("Error when saving the output image: %s\n", lodepng_error_text(outputError));
         return -1;
     }
-    // Delete the image
-    free(image);
     return 0;
 }
