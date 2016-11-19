@@ -53,11 +53,15 @@ int main(int argc, char* argv[]) {
         printf("Error when loading the input image: %s\n", lodepng_error_text(readError));
         return -1;
     }
+    // Get the size of the output from the input
+    unsigned outputWidth = width;
+    unsigned outputHeight = height;
+    getOutputSize(&outputWidth, &outputHeight);
     // Get the recommended block size
-    unsigned pixelCount = width * height;
+    unsigned outputPixelCount = outputWidth * outputHeight;
     int blockSize;
     int minGridSize;
-    cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, transform, 0, pixelCount);
+    cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, transform, 0, outputPixelCount);
     // Calculate the best 2D block size from the recommended block size
     blockSize = getLargestPreviousSquareAndMultipleOfM(blockSize, WARP_MULTIPLE);
     if (blockSize <= 0) {
@@ -67,16 +71,16 @@ int main(int argc, char* argv[]) {
     int blockLength = sqrt(blockSize);
     // Create the 2D block and grid dimensions
     dim3 dimBlock(blockLength, blockLength);
-    dim3 dimGrid((width + dimBlock.x - 1) / dimBlock.x, (height + dimBlock.y - 1) / dimBlock.y);
+    dim3 dimGrid((outputWidth + dimBlock.x - 1) / dimBlock.x, (outputHeight + dimBlock.y - 1) / dimBlock.y);
     // Our image is made up of four 8 bit unsigned components
     cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc(8, 8, 8, 8, cudaChannelFormatKindUnsigned);
     cudaArray* cuArray;
-    // Allocate a CUDA array in device memory
+    // Allocate a CUDA array on the GPU to hold the input image
     cudaMallocArray(&cuArray, &channelDesc, width, height);
     // Copy the image data to the GPU
-    unsigned imageByteSize = pixelCount * sizeof(unsigned char) * 4;
+    unsigned imageByteSize = width * height * sizeof(unsigned char) * 4;
     cudaMemcpyToArray(cuArray, 0, 0, image, imageByteSize, cudaMemcpyHostToDevice);
-    // Delete the image since we no longer need it
+    // Delete the input image since we no longer need it
     free(image);
     // Create a resource description for the texture using the array
     struct cudaResourceDesc resDesc;
@@ -94,12 +98,8 @@ int main(int argc, char* argv[]) {
     // Create texture object
     cudaTextureObject_t texture = 0;
     cudaCreateTextureObject(&texture, &resDesc, &texDesc, NULL);
-    // Get the size of the output from the input
-    unsigned outputWidth = width;
-    unsigned outputHeight = height;
-    getOutputSize(&outputWidth, &outputHeight);
     // Allocate the output of transformation on the GPU
-    unsigned imageOutputByteSize = outputWidth * outputHeight * sizeof(unsigned char) * 4;
+    unsigned imageOutputByteSize = outputPixelCount * sizeof(unsigned char) * 4;
     unsigned char* output;
     cudaMalloc(&output, imageOutputByteSize);
     // Check for a CUDA error when creating the texture
@@ -116,7 +116,7 @@ int main(int argc, char* argv[]) {
     clock_gettime(CLOCK_MONOTONIC, &start);
 #endif // MACH_TIMING
     // Invoke kernel
-    transform<<<dimGrid, dimBlock>>>(output, texture, width, height);
+    transform<<<dimGrid, dimBlock>>>(output, texture, outputWidth, outputHeight);
     // Get the end time and delta in seconds
 #ifdef MACH_TIMING
     uint64_t end = mach_absolute_time();
