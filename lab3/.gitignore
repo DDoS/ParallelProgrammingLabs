@@ -1,0 +1,10 @@
+# Project executables
+rectify
+pool
+convolve
+grid_4_4
+grid_512_512
+
+# Project input/output
+*.png
+!report/*.png
