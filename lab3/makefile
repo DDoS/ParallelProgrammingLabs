@@ -40,7 +40,7 @@ grid_4_4: grid.cu common.h
 	$(CC) $(CCFLAGS) -o grid_4_4 grid.cu
 
 grid_512_512: CCFLAGS += -DN=512
-grid_512_512: grid.c common.h
+grid_512_512: grid.cu common.h
 	$(CC) $(CCFLAGS) -o grid_512_512 grid.cu
 
 cleanObjs:
