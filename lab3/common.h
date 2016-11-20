@@ -11,14 +11,12 @@ int selectBestGPU() {
     // Get the one with the most processors
     int maxProc = 0;
     int maxDevice = 0;
-    char maxName[256];
     for (int device = 0; device < deviceCount; device++) {
         cudaDeviceProp properties;
         cudaGetDeviceProperties(&properties, device);
         if (maxProc < properties.multiProcessorCount) {
             maxProc = properties.multiProcessorCount;
             maxDevice = device;
-            memcpy(maxName, properties.name, 256 * sizeof(char));
         }
     }
     // Use that device
