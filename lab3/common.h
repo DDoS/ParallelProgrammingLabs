@@ -44,7 +44,13 @@ template<class T> int findBestGridAndBlockDims2D(unsigned outputWidth, unsigned 
     int minGridSize;
     cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, kernelFunction, 0, outputWidth * outputHeight);
     // Calculate the best 2D block size from the recommended block size
-    blockSize = getLargestPreviousSquareAndMultipleOfM(blockSize, WARP_MULTIPLE);
+    if (blockSize < WARP_MULTIPLE) {
+        // This can't be a multiple of the warp size, but it can be a square
+        blockSize = getLargestPreviousSquareAndMultipleOfM(blockSize, 1);
+    } else {
+        // Find a square and multiple of the warp size
+        blockSize = getLargestPreviousSquareAndMultipleOfM(blockSize, WARP_MULTIPLE);
+    }
     if (blockSize <= 0) {
         return 0;
     }
