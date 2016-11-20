@@ -1,21 +1,6 @@
-#ifdef __MACH__
-#define MACH_TIMING
-#endif // __MACH__
-
-#ifdef __unix__
-#define POSIX_TIMING
-#define _POSIX_C_SOURCE 199309L
-#endif // __unix__
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-
-#ifdef MACH_TIMING
-#include <mach/mach_time.h>
-#elif defined(POSIX_TIMING)
-#include <time.h>
-#endif // MACH_TIMING
 
 #include "lodepng.h"
 #include "transform.h"
@@ -108,29 +93,21 @@ int main(int argc, char* argv[]) {
         printf("CUDA error %s\n", cudaGetErrorString(error));
         return -1;
     }
-    // Get the start time
-#ifdef MACH_TIMING
-    uint64_t start = mach_absolute_time();
-#elif defined(POSIX_TIMING)
-    struct timespec start;
-    clock_gettime(CLOCK_MONOTONIC, &start);
-#endif // MACH_TIMING
+    // Start the timer
+    cudaEvent_t start, stop;
+    cudaEventCreate(&start);
+    cudaEventCreate(&stop);
+    cudaEventRecord(start, 0);
     // Invoke kernel
     transform<<<dimGrid, dimBlock>>>(output, texture, outputWidth, outputHeight);
-    // Get the end time and delta in seconds
-#ifdef MACH_TIMING
-    uint64_t end = mach_absolute_time();
-    uint64_t elapsed = end - start;
-    mach_timebase_info_data_t timebaseInfo;
-    mach_timebase_info(&timebaseInfo);
-    double elapsedNano = elapsed * timebaseInfo.numer / timebaseInfo.denom;
-#elif defined(POSIX_TIMING)
-    struct timespec end;
-    clock_gettime(CLOCK_MONOTONIC, &end);
-    double elapsedNano = 1e9 * end.tv_sec + end.tv_nsec - 1e9 * start.tv_sec - start.tv_nsec;
-#endif // MACH_TIMING
+    // Stop the time
+    cudaEventRecord(stop, 0);
+    cudaEventSynchronize(stop);
+    // Get the time delta in miliseconds
+    float elapsedMili;
+    cudaEventElapsedTime(&elapsedMili, start, stop);
     // Print the time taken
-    printf("took about %.5f seconds\n", 1e-9 * elapsedNano);
+    printf("Took about %.4fms\n", elapsedMili);
     // Allocate some some CPU side memory for the output image
     unsigned char* imageOut = (unsigned char*) malloc(imageOutputByteSize);
     // Copy the output from the GPU back into the image
