@@ -1,6 +1,30 @@
 #include <stdio.h>
 
 #include "common.h"
+#include "constant.h"
+
+void printGrid(float* grid) {
+    for (unsigned y = 0; y < N; y++) {
+        for (unsigned x = 0; x < N; x++) {
+            float* node = grid + (y * N + x) * 4;
+            printf("(%d,%d): %0.6f ", x, y, node[0]);
+        }
+        printf("\n");
+    }
+}
+
+inline __device__ float4 readAndUpdate(cudaSurfaceObject_t surface, unsigned x, unsigned y) {
+    // Read the node value and its neighbours
+    float4 n, l, r, b, a;
+    surf2Dread(&n, surface, x * sizeof(float) * 4, y);
+    surf2Dread(&l, surface, (x - 1) * sizeof(float) * 4, y);
+    surf2Dread(&r, surface, (x + 1) * sizeof(float) * 4, y);
+    surf2Dread(&b, surface, x * sizeof(float) * 4, (y - 1));
+    surf2Dread(&a, surface, x * sizeof(float) * 4, (y + 1));
+    // Calculate the updated value
+    n.x = (RHO * (l.y + r.y + b.y + a.y - 4 * n.y) + 2 * n.y - (1 - ETA) * n.z) / (1 + ETA);
+    return n;
+}
 
 __global__ void iterate(cudaSurfaceObject_t surface) {
     // Calculate image coordinates in the output
@@ -10,19 +34,61 @@ __global__ void iterate(cudaSurfaceObject_t surface) {
     if (x >= N || y >= N) {
         return;
     }
-    // Read the node value
-    float4 node;
-    surf2Dread(&node, surface, x * 4, y);
-    // Perform the middle updates
-    node.x = node.y / 2;
-    surf2Dwrite(node, surface, x * 4, y);
-    // Barrier for completion of the middle updates
-
-    // Perform the side updates
-
-    // Barrier for completion of the side updates
-
-    // Perform the corner updates
+    // For edges and corners, just defer to the middle node value being used
+    float4 n;
+    if (x == 0) {
+        if (y == 0) {
+            // Corner case
+            surf2Dread(&n, surface, x * sizeof(float) * 4, y);
+            float4 ra = readAndUpdate(surface, x + 1, y + 1);
+            n.x = G * G * ra.x;
+        } else if (y == N - 1) {
+            // Corner case
+            surf2Dread(&n, surface, x * sizeof(float) * 4, y);
+            float4 rb = readAndUpdate(surface, x + 1, y - 1);
+            n.x = G * G * rb.x;
+        } else {
+            // Side case
+            surf2Dread(&n, surface, x * sizeof(float) * 4, y);
+            float4 r = readAndUpdate(surface, x + 1, y);
+            n.x = G * r.x;
+        }
+    } else if (x == N - 1) {
+        if (y == 0) {
+            // Corner case
+            surf2Dread(&n, surface, x * sizeof(float) * 4, y);
+            float4 la = readAndUpdate(surface, x - 1, y + 1);
+            n.x = G * G * la.x;
+        } else if (y == N - 1) {
+            // Corner case
+            surf2Dread(&n, surface, x * sizeof(float) * 4, y);
+            float4 lb = readAndUpdate(surface, x - 1, y - 1);
+            n.x = G * G * lb.x;
+        } else {
+            // Side case
+            surf2Dread(&n, surface, x * sizeof(float) * 4, y);
+            float4 l = readAndUpdate(surface, x - 1, y);
+            n.x = G * l.x;
+        }
+    } else if (y == 0) {
+        // Side case
+        surf2Dread(&n, surface, x * sizeof(float) * 4, y);
+        float4 a = readAndUpdate(surface, x, y + 1);
+        n.x = G * a.x;
+    } else if (y == N - 1) {
+        // Side case
+        surf2Dread(&n, surface, x * sizeof(float) * 4, y);
+        float4 b = readAndUpdate(surface, x, y - 1);
+        n.x = G * b.x;
+    } else {
+        // Middle case
+        n = readAndUpdate(surface, x, y);
+    }
+    // Update the age of the values
+    n.z = n.y;
+    n.y = n.x;
+    // Write back the value
+    surf2Dwrite(n, surface, x * sizeof(float) * 4, y);
 }
 
 float* createInitialGrid() {
@@ -64,21 +130,21 @@ int main(int argc, char* argv[]) {
     cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc(32, 32, 32, 32, cudaChannelFormatKindFloat);
     // Create the initial grid on the CPU side
     float* grid = createInitialGrid();
-    // Allocate a CUDA array on the GPU to hold the simulation datas
+    // Allocate a CUDA array on the GPU to hold the simulation data
     cudaArray* cuArray;
-    cudaMallocArray(&cuArray, &channelDesc, N, N);
-    // Copy the initial grid configuration to the GPU
+    cudaMallocArray(&cuArray, &channelDesc, N, N, cudaArraySurfaceLoadStore);
+    // Copy the initial grid configuration to the GPU array
     unsigned gridByteSize = N * N * sizeof(float) * 4;
     cudaMemcpyToArray(cuArray, 0, 0, grid, gridByteSize, cudaMemcpyHostToDevice);
-    // Create a resource description for the surface using the array
+    // Create a resource description for a surface
     struct cudaResourceDesc resDesc;
     memset(&resDesc, 0, sizeof(resDesc));
     resDesc.resType = cudaResourceTypeArray;
     resDesc.res.array.array = cuArray;
-    // Create the surface for the grid
+    // Create two surfaces for the grid
     cudaSurfaceObject_t surface = 0;
     cudaCreateSurfaceObject(&surface, &resDesc);
-    // Check for a CUDA error when creating the surface
+    // Check for a CUDA error when creating the surfaces
     cudaError_t error = cudaGetLastError();
     if (error != cudaSuccess) {
         printf("CUDA error %s\n", cudaGetErrorString(error));
@@ -89,8 +155,10 @@ int main(int argc, char* argv[]) {
     cudaEventCreate(&start);
     cudaEventCreate(&stop);
     cudaEventRecord(start, 0);
-    // Invoke kernel
-    iterate<<<dimGrid, dimBlock>>>(surface);
+    // Invoke kernel once per iteration
+    for (int i = 0; i < iterationCount; i++) {
+        iterate<<<dimGrid, dimBlock>>>(surface);
+    }
     // Stop the time
     cudaEventRecord(stop, 0);
     cudaEventSynchronize(stop);
@@ -105,5 +173,14 @@ int main(int argc, char* argv[]) {
         printf("CUDA error %s\n", cudaGetErrorString(error));
         return -1;
     }
+    // Copy the grid from the GPU back to the CPU
+    cudaMemcpyFromArray(grid, cuArray, 0, 0, gridByteSize, cudaMemcpyDeviceToHost);
+    // Destroy surface object
+    cudaDestroySurfaceObject(surface);
+    // Free the GPU memory
+    cudaFreeArray(cuArray);
+
+    printGrid(grid);
+
     return 0;
 }
