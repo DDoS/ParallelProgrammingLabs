@@ -147,17 +147,12 @@ int main(int argc, char* argv[]) {
         printf("CUDA error %s\n", cudaGetErrorString(error));
         return -1;
     }
-    // Start the timer
-    cudaEvent_t start, stop;
-    cudaEventCreate(&start);
-    cudaEventCreate(&stop);
-    cudaEventRecord(start, 0);
     // Invoke kernel once per iteration
     for (int i = 0; i < iterationCount; i++) {
         iterate<<<dimGrid, dimBlock>>>(inSurface, outSurface);
         // Get the middle value from the GPU and print it
         float value;
-        cudaMemcpyFromArray(&value, outArray, (N / 2) * sizeof(float) * 4, N / 2, sizeof(float) * 4, cudaMemcpyDeviceToHost);
+        cudaMemcpyFromArray(&value, outArray, (N / 2) * sizeof(float) * 4, N / 2, sizeof(float), cudaMemcpyDeviceToHost);
         printf("%0.6f", value);
         if (i < iterationCount - 1) {
             printf(",");
@@ -171,14 +166,6 @@ int main(int argc, char* argv[]) {
         outSurface = inSurface;
         inSurface = tempSurface;
     }
-    // Stop the time
-    cudaEventRecord(stop, 0);
-    cudaEventSynchronize(stop);
-    // Get the time delta in miliseconds
-    float elapsedMili;
-    cudaEventElapsedTime(&elapsedMili, start, stop);
-    // Print the time taken
-    printf("Took about %.4fms\n", elapsedMili);
     // Check for a CUDA error when finishing the job
     error = cudaGetLastError();
     if (error != cudaSuccess) {

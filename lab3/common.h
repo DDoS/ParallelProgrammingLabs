@@ -23,7 +23,6 @@ int selectBestGPU() {
     }
     // Use that device
     cudaSetDevice(maxDevice);
-    printf("Using GPU: %s\n", maxName);
     return 1;
 }
 
