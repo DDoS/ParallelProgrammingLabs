@@ -8,7 +8,7 @@ void getOutputSize(unsigned* width, unsigned* height) {
     *height /= POOL_SIZE;
 }
 
-inline __host__ __device__ uint4 max(uint4 a, uint4 b) {
+inline __device__ uint4 max(uint4 a, uint4 b) {
     return make_uint4(max(a.x, b.x), max(a.y, b.y), max(a.z, b.z), max(a.w, b.w));
 }
 
