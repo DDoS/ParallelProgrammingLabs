@@ -12,7 +12,7 @@ lodepng.o: lodepng.cu lodepng.h
 	$(CC) $(CCFLAGS) -c lodepng.cu
 
 # compile transform without the implementation
-transform.o: transform.cu transform.h lodepng.h
+transform.o: transform.cu transform.h common.h lodepng.h
 	$(CC) $(CCFLAGS) -c transform.cu
 
 # compile the implementations of transform
