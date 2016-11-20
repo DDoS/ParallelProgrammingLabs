@@ -17,7 +17,7 @@ inline __device__ unsigned char toUnsignedCharSaturated(float v) {
     return (unsigned char) v;
 }
 
-inline __device__ float4 operator *(uint4 a, float b) {
+inline __device__ float4 operator *(uchar4 a, float b) {
     return make_float4(a.x * b, a.y * b, a.z * b, a.w * b);
 }
 
@@ -39,7 +39,7 @@ __global__ void transform(unsigned char* output, cudaTextureObject_t texture, un
         float *weightLine = weightMatrix[yy];
         for (unsigned xx = 0; xx < WEIGHT_MATRIX_SIZE; xx++) {
             // Read the pixel data from the texture, weight it, and add it to the current value
-            sumPixel += tex2D<uint4>(texture, x + xx, y + yy) * weightLine[xx];
+            sumPixel += tex2D<uchar4>(texture, x + xx, y + yy) * weightLine[xx];
         }
     }
     // Calculate the output pixel address

@@ -8,8 +8,8 @@ void getOutputSize(unsigned* width, unsigned* height) {
     *height /= POOL_SIZE;
 }
 
-inline __device__ uint4 max(uint4 a, uint4 b) {
-    return make_uint4(max(a.x, b.x), max(a.y, b.y), max(a.z, b.z), max(a.w, b.w));
+inline __device__ uchar4 max(uchar4 a, uchar4 b) {
+    return make_uchar4(max(a.x, b.x), max(a.y, b.y), max(a.z, b.z), max(a.w, b.w));
 }
 
 __global__ void transform(unsigned char* output, cudaTextureObject_t texture, unsigned width, unsigned height) {
@@ -24,11 +24,11 @@ __global__ void transform(unsigned char* output, cudaTextureObject_t texture, un
     unsigned xIn = xOut * POOL_SIZE;
     unsigned yIn = yOut * POOL_SIZE;
     // Pool in the pooling region of the input image
-    uint4 pooledPixel = make_uint4(0, 0, 0, 0xFF);
+    uchar4 pooledPixel = make_uchar4(0, 0, 0, 0xFF);
     for (unsigned y = 0; y < POOL_SIZE; y++) {
         for (unsigned x = 0; x < POOL_SIZE; x++) {
             // Read the pixel data from the texture and apply the max function to the current value
-            pooledPixel = max(pooledPixel, tex2D<uint4>(texture, xIn + x, yIn + y));
+            pooledPixel = max(pooledPixel, tex2D<uchar4>(texture, xIn + x, yIn + y));
         }
     }
     // Calculate the output pixel address

@@ -41,8 +41,8 @@ int main(int argc, char* argv[]) {
     }
     // Our image is made up of four 8 bit unsigned components
     cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc(8, 8, 8, 8, cudaChannelFormatKindUnsigned);
-    cudaArray* cuArray;
     // Allocate a CUDA array on the GPU to hold the input image
+    cudaArray* cuArray;
     cudaMallocArray(&cuArray, &channelDesc, width, height);
     // Copy the image data to the GPU
     unsigned imageByteSize = width * height * sizeof(unsigned char) * 4;
