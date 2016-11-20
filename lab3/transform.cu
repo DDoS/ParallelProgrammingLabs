@@ -5,6 +5,33 @@
 
 #define WARP_MULTIPLE 32
 
+int selectBestGPU() {
+    // Get the number of devices
+    int deviceCount;
+    cudaGetDeviceCount(&deviceCount);
+    // There should be at least one
+    if (deviceCount <= 0) {
+        return 0;
+    }
+    // Get the one with the most processors
+    int maxProc = 0;
+    int maxDevice = 0;
+    char maxName[256];
+    for (int device = 0; device < deviceCount; device++) {
+        cudaDeviceProp properties;
+        cudaGetDeviceProperties(&properties, device);
+        if (maxProc < properties.multiProcessorCount) {
+            maxProc = properties.multiProcessorCount;
+            maxDevice = device;
+            memcpy(maxName, properties.name, 256 * sizeof(char));
+        }
+    }
+    // Use that device
+    cudaSetDevice(maxDevice);
+    printf("Using GPU: %s\n", maxName);
+    return 1;
+}
+
 int getLargestPreviousSquareAndMultipleOfM(int n, int m) {
     // Round down to the next multiple of m
     n -= n % m;
@@ -34,6 +61,11 @@ int main(int argc, char* argv[]) {
     unsigned readError = lodepng_decode32_file(&image, &width, &height, inputName);
     if (readError) {
         printf("Error when loading the input image: %s\n", lodepng_error_text(readError));
+        return -1;
+    }
+    // Select the GPU first
+    if (!selectBestGPU()) {
+        printf("No CUDA supporting GPU found\n");
         return -1;
     }
     // Get the size of the output from the input
