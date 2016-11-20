@@ -2,47 +2,7 @@
 
 #include "lodepng.h"
 #include "transform.h"
-
-#define WARP_MULTIPLE 32
-
-int selectBestGPU() {
-    // Get the number of devices
-    int deviceCount;
-    cudaGetDeviceCount(&deviceCount);
-    // There should be at least one
-    if (deviceCount <= 0) {
-        return 0;
-    }
-    // Get the one with the most processors
-    int maxProc = 0;
-    int maxDevice = 0;
-    char maxName[256];
-    for (int device = 0; device < deviceCount; device++) {
-        cudaDeviceProp properties;
-        cudaGetDeviceProperties(&properties, device);
-        if (maxProc < properties.multiProcessorCount) {
-            maxProc = properties.multiProcessorCount;
-            maxDevice = device;
-            memcpy(maxName, properties.name, 256 * sizeof(char));
-        }
-    }
-    // Use that device
-    cudaSetDevice(maxDevice);
-    printf("Using GPU: %s\n", maxName);
-    return 1;
-}
-
-int getLargestPreviousSquareAndMultipleOfM(int n, int m) {
-    // Round down to the next multiple of m
-    n -= n % m;
-    // Look for a perfect square
-    double ignored;
-    while (n > 0 && modf(sqrt((double) n), &ignored) != 0) {
-        // Otherwise reduce to the next multiple of m
-        n -= m;
-    }
-    return n;
-}
+#include "common.h"
 
 int main(int argc, char* argv[]) {
     // Check for the command line argument
@@ -72,21 +32,13 @@ int main(int argc, char* argv[]) {
     unsigned outputWidth = width;
     unsigned outputHeight = height;
     getOutputSize(&outputWidth, &outputHeight);
-    // Get the recommended block size
-    unsigned outputPixelCount = outputWidth * outputHeight;
-    int blockSize;
-    int minGridSize;
-    cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, transform, 0, outputPixelCount);
-    // Calculate the best 2D block size from the recommended block size
-    blockSize = getLargestPreviousSquareAndMultipleOfM(blockSize, WARP_MULTIPLE);
-    if (blockSize <= 0) {
+    // Get the recommended block and grid sizes
+    dim3 dimBlock;
+    dim3 dimGrid;
+    if (!findBestGridAndBlockDims2D(outputWidth, outputHeight, transform, &dimBlock, &dimGrid)) {
         printf("Could not calculate a suitable block size\n");
         return -1;
     }
-    int blockLength = sqrt(blockSize);
-    // Create the 2D block and grid dimensions
-    dim3 dimBlock(blockLength, blockLength);
-    dim3 dimGrid((outputWidth + dimBlock.x - 1) / dimBlock.x, (outputHeight + dimBlock.y - 1) / dimBlock.y);
     // Our image is made up of four 8 bit unsigned components
     cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc(8, 8, 8, 8, cudaChannelFormatKindUnsigned);
     cudaArray* cuArray;
@@ -114,7 +66,7 @@ int main(int argc, char* argv[]) {
     cudaTextureObject_t texture = 0;
     cudaCreateTextureObject(&texture, &resDesc, &texDesc, NULL);
     // Allocate the output of transformation on the GPU
-    unsigned imageOutputByteSize = outputPixelCount * sizeof(unsigned char) * 4;
+    unsigned imageOutputByteSize = outputWidth * outputHeight * sizeof(unsigned char) * 4;
     unsigned char* output;
     cudaMalloc(&output, imageOutputByteSize);
     // Check for a CUDA error when creating the texture
