@@ -2,14 +2,50 @@
 
 #include "common.h"
 
-__global__ void iterate() {
+__global__ void iterate(cudaSurfaceObject_t surface) {
+    // Calculate image coordinates in the output
+    unsigned x = blockIdx.x * blockDim.x + threadIdx.x;
+    unsigned y = blockIdx.y * blockDim.y + threadIdx.y;
+    // Check that we are within bounds
+    if (x >= N || y >= N) {
+        return;
+    }
+    // Read the node value
+    float4 node;
+    surf2Dread(&node, surface, x * 4, y);
+    // Perform the middle updates
+    node.x = node.y / 2;
+    surf2Dwrite(node, surface, x * 4, y);
+    // Barrier for completion of the middle updates
 
+    // Perform the side updates
+
+    // Barrier for completion of the side updates
+
+    // Perform the corner updates
+}
+
+float* createInitialGrid() {
+    // Allocate a zero'd grid
+    float* grid = (float*) calloc(N * N * 4, sizeof(float));
+    // Set the middle element u1 to 1
+    float* middle = grid + (N * (N + 1) * 4) / 2;
+    middle[1] = 1;
+    return grid;
 }
 
 int main(int argc, char* argv[]) {
     // Check for the command line argument
-    if (argc != 1) {
-        printf("Expected no arguments\n");
+    if (argc != 2) {
+        printf("Expected 1 argument\n");
+        return -1;
+    }
+    // The first argument is the program name, skip it
+    // The second is the iteration count
+    unsigned iterationCount = strtoul(argv[1], NULL, 10);
+    if (iterationCount <= 0) {
+        // This also occurs if the string is not a number
+        printf("Iteration count is 0 or not a number\n");
         return -1;
     }
     // Select the GPU first
@@ -24,7 +60,25 @@ int main(int argc, char* argv[]) {
         printf("Could not calculate a suitable block size\n");
         return -1;
     }
-    // Check for a CUDA error when creating the texture
+    // Our simulation is made up of nodes with 4 float components (not 3 because of alignment constraints)
+    cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc(32, 32, 32, 32, cudaChannelFormatKindFloat);
+    // Create the initial grid on the CPU side
+    float* grid = createInitialGrid();
+    // Allocate a CUDA array on the GPU to hold the simulation datas
+    cudaArray* cuArray;
+    cudaMallocArray(&cuArray, &channelDesc, N, N);
+    // Copy the initial grid configuration to the GPU
+    unsigned gridByteSize = N * N * sizeof(float) * 4;
+    cudaMemcpyToArray(cuArray, 0, 0, grid, gridByteSize, cudaMemcpyHostToDevice);
+    // Create a resource description for the surface using the array
+    struct cudaResourceDesc resDesc;
+    memset(&resDesc, 0, sizeof(resDesc));
+    resDesc.resType = cudaResourceTypeArray;
+    resDesc.res.array.array = cuArray;
+    // Create the surface for the grid
+    cudaSurfaceObject_t surface = 0;
+    cudaCreateSurfaceObject(&surface, &resDesc);
+    // Check for a CUDA error when creating the surface
     cudaError_t error = cudaGetLastError();
     if (error != cudaSuccess) {
         printf("CUDA error %s\n", cudaGetErrorString(error));
@@ -36,7 +90,7 @@ int main(int argc, char* argv[]) {
     cudaEventCreate(&stop);
     cudaEventRecord(start, 0);
     // Invoke kernel
-    iterate<<<dimGrid, dimBlock>>>();
+    iterate<<<dimGrid, dimBlock>>>(surface);
     // Stop the time
     cudaEventRecord(stop, 0);
     cudaEventSynchronize(stop);
