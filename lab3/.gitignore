@@ -7,4 +7,3 @@ grid_512_512
 
 # Project input/output
 *.png
-!report/*.png
