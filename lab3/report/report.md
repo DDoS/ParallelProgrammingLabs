@@ -21,10 +21,10 @@ Time measured with CUDA event timing.
 
 ### 1.2. Rectification
 
-|NVIDIA GPU     |Time (ms)     |
-|---------------|--------------|
-|GeForce GTX 680|.......       |
-|Tesla K40c     |.......       |
+|NVIDIA GPU     |Time (ms)|
+|---------------|---------|
+|GeForce GTX 680|......   |
+|Tesla K40c     |0.0524   |
 
 Talk about complexity, 1:1 mapping from input image to output.
 
@@ -36,10 +36,10 @@ The output image from the rectification performance tests.
 
 ### 1.3. Pooling
 
-|NVIDIA GPU     |Time (ms)     |
-|---------------|--------------|
-|GeForce GTX 680|.......       |
-|Tesla K40c     |.......       |
+|NVIDIA GPU     |Time (ms)|
+|---------------|---------|
+|GeForce GTX 680|.......  |
+|Tesla K40c     |0.0289   |
 
 Talk about complexity, 4 input pixels per output pixel, but output image is 4 times smaller.
 
@@ -78,18 +78,18 @@ Time measured with bash `time` command.
 
 ### 2.2. 4 by 4 grid
 
-|NVIDIA GPU     |Time (ms)     |
+|NVIDIA GPU     |Time (seconds)|
 |---------------|--------------|
 |GeForce GTX 680|.......       |
-|Tesla K40c     |.......       |
+|Tesla K40c     |0.383         |
 
 Very small simulation, how does that affect the performance difference.
 
 ### 2.2. 512 by 512 grid
 
-|NVIDIA GPU     |Time (ms)     |
+|NVIDIA GPU     |Time (seconds)|
 |---------------|--------------|
 |GeForce GTX 680|.......       |
-|Tesla K40c     |.......       |
+|Tesla K40c     |0.964         |
 
 Larger simulation, how does that affect the performance difference.
