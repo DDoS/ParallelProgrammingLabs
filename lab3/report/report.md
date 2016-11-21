@@ -23,7 +23,7 @@ Time measured with CUDA event timing.
 
 |NVIDIA GPU     |Time (ms)|
 |---------------|---------|
-|GeForce GTX 680|......   |
+|GeForce GTX 680|0.0803   |
 |Tesla K40c     |0.0524   |
 
 Talk about complexity, 1:1 mapping from input image to output.
@@ -38,7 +38,7 @@ The output image from the rectification performance tests.
 
 |NVIDIA GPU     |Time (ms)|
 |---------------|---------|
-|GeForce GTX 680|.......  |
+|GeForce GTX 680|0.0215   |
 |Tesla K40c     |0.0289   |
 
 Talk about complexity, 4 input pixels per output pixel, but output image is 4 times smaller.
@@ -80,7 +80,7 @@ Time measured with bash `time` command.
 
 |NVIDIA GPU     |Time (seconds)|
 |---------------|--------------|
-|GeForce GTX 680|.......       |
+|GeForce GTX 680|0.314         |
 |Tesla K40c     |0.383         |
 
 Very small simulation, how does that affect the performance difference.
@@ -89,7 +89,7 @@ Very small simulation, how does that affect the performance difference.
 
 |NVIDIA GPU     |Time (seconds)|
 |---------------|--------------|
-|GeForce GTX 680|.......       |
+|GeForce GTX 680|1.039         |
 |Tesla K40c     |0.964         |
 
 Larger simulation, how does that affect the performance difference.
