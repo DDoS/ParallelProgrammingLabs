@@ -54,7 +54,7 @@ The output image from the pooling performance tests.
 |NVIDIA GPU     |Time (ms)|
 |---------------|---------|
 |GeForce GTX 680|0.8109   |
-|Tesla K40c     |.......  |
+|Tesla K40c     |1.0864   |
 
 Talk about complexity, 9 input pixels per output pixel, and output image is only marginally smaller.
 
