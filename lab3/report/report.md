@@ -58,10 +58,10 @@ The output image from the pooling performance tests.
 
 Talk about complexity, 9 input pixels per output pixel, and output image is only marginally smaller.
 
-![Input image](?.png)  
+![Input image](JustDoIt.png)  
 The input image used for the convolution performance tests.
 
-![Output image](?Convolved.png)  
+![Output image](JustDoItConvolved.png)  
 The output image from the convolution performance tests.
 
 ## 2. Finite element synthesis
