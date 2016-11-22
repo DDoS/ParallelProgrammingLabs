@@ -51,10 +51,10 @@ The output image from the pooling performance tests.
 
 ### 1.4. Convolution
 
-|NVIDIA GPU     |Time (ms)     |
-|---------------|--------------|
-|GeForce GTX 680|.......       |
-|Tesla K40c     |.......       |
+|NVIDIA GPU     |Time (ms)|
+|---------------|---------|
+|GeForce GTX 680|0.8109   |
+|Tesla K40c     |.......  |
 
 Talk about complexity, 9 input pixels per output pixel, and output image is only marginally smaller.
 
