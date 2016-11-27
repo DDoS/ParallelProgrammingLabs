@@ -66,13 +66,12 @@ The output image from the convolution performance tests.
 
 ### 2.0. CUDA implementation
 
-Describe use of surface object API in `grid.cu` here. Advantages: makes read and write addressing easier, better modelling of simulation data because it is designed for multidimensional arrays.
+In the CUDA implementation of lab 2, instead of using a texture object, we used a surface object in `grid.cu`. There are a few advantages of using this type of object. First of all, this makes the read and write operations easier for the GPU. It is also more fit for the purpose of this lab since it is designed for multidimensional arrays, which makes it a better model for our drum simulation.
 
 ### 2.1. Performance analysis
 
-Two different GPUs. More streaming multiprocessors makes it faster, compare the number for each model.
-
-Time measured with bash `time` command.
+We also used two differenet GPU for this lab and analyzed each performance with respect to a 4 by 4 grid and a 512 by 512 grid. 
+For the timing analysis, as done in lab 2, we used the `time` bash command to measure our time.
 
 ### 2.2. 4 by 4 grid
 
@@ -81,7 +80,9 @@ Time measured with bash `time` command.
 |GeForce GTX 680|0.314         |
 |Tesla K40c     |0.383         |
 
-Very small simulation, how does that affect the performance difference.
+Very small simulation, how does that affect the performance difference. 21.97%
+
+For a very small simulation like a 4 by4 grid, the timming a pretty similar. We notice that the Tesla K40x is 21.97% slower than the GeForce GTX 680. However, the size grid makes it probable that the overhead of the K40c is responsible for its slowness compared to the GTX 680.
 
 ### 2.2. 512 by 512 grid
 
@@ -91,3 +92,5 @@ Very small simulation, how does that affect the performance difference.
 |Tesla K40c     |0.964         |
 
 Larger simulation, how does that affect the performance difference.
+
+Here we see that for a larger simulation such as a 512 by 512 grid, the Tesla K40c outperforms the GTX 680 by a slight 7.22%. WE can conclude that both GPU performs approximately the same way on a larger scale.
