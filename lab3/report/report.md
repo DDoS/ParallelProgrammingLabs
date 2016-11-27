@@ -5,19 +5,17 @@ Samuel Cauchon - 260587509
 
 ## 0. Parallelization
 
-Describe what `findBestGridAndBlockDims2D` in `common.h` does here.
+In both labs, the parallelization strategy is to split the problem (the image for lab 1 or the drum for lab 2) into sub problems (blocks) where each subproblems would be solved by a unit (processes and threads in the previous lab). Here, we used CUDA which uses the graphic card to process the data. In order to make both labs paralellized using CUDA, we created a function called `findBestGridAndBlockDims2D` in `common.h`. The goal of this function is to find the best block partition given a 2D array. Using those partitions, we managed to split each of our subproblems and process it on each thread block of our graphic card.
 
 ## 1. Image transformations
 
 ### 1.0. CUDA implementation
 
-Describe use of texture object API in `transform.cu` here. Advantages: better cache usage, better modelling of the input data since designed to work with images.
+The CUDA implementation we designed for this lab also included a texture object in `transform.cu`. There area few advantages of using this type of object. First of all, we make a better use of the cache, which in turn makes our program more efficient and faster. The second advantage is that it creates a better modeling of the input data since it was designed to work with images.
 
 ### 1.1. Performance analysis
 
-Two different GPUs. More streaming multiprocessors makes it faster, compare the number for each model.
-
-Time measured with CUDA event timing.
+For the timing analysis of each type of conversion, we used CUDA event timming. This insured to only get the time that the GPU utilized to process the data. Furthermore, we also tested each conversion using 2 different GPUs to show the performance of both and draw a conclusion on the performance of a CUDA paralellized program and the graphic card used to run the program.
 
 ### 1.2. Rectification
 
@@ -26,7 +24,7 @@ Time measured with CUDA event timing.
 |GeForce GTX 680|0.0803   |
 |Tesla K40c     |0.0524   |
 
-Talk about complexity, 1:1 mapping from input image to output.
+Here we notice that the Tesla K40c graphic card performs better than the GeForce GTX 680 due to the fact that the K40c took 34.74% less time to run the program than the GTX 680. Since it is a 1:1 mapping where 1 value of the input is process to ouput 1 value, the complexity of the program is lowered and this makes it a good program to test each GPU in an efficient way.
 
 ![Input image](Rooster.png)  
 The input image used for the rectification performance tests.
@@ -41,7 +39,7 @@ The output image from the rectification performance tests.
 |GeForce GTX 680|0.0215   |
 |Tesla K40c     |0.0289   |
 
-Talk about complexity, 4 input pixels per output pixel, but output image is 4 times smaller.
+Here the complexity of the program is a bit higher since we need to process 4 inputs and output only one (4:1 mapping). However, the size of the ouput image is 4 times smaller. We notice that the Tesla K40c is a bit slower than the GeForce GTX 680 by 34.41%. We can conclude that the level of complexity of a program may affect the GPU's performance depending of the GPU used.
 
 ![Input image](Jaguar.png)  
 The input image used for the pooling performance tests.
@@ -56,7 +54,7 @@ The output image from the pooling performance tests.
 |GeForce GTX 680|0.8109   |
 |Tesla K40c     |1.0864   |
 
-Talk about complexity, 9 input pixels per output pixel, and output image is only marginally smaller.
+Notice here again that the complexity of the program is higher since we map 9 input pixels to 1 out pixel. However, the output image is only slightly smaller. Similar to pooling, convolution on the K40c runs 33.97% slower than the GTX 680. Again, the level of complexity seems to be a factor in the performance of each GPU where, as the level of compelxity increases, the Tesla K40c looses in performance compared to the GeForce GTX 680.
 
 ![Input image](JustDoIt.png)  
 The input image used for the convolution performance tests.
