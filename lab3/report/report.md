@@ -5,17 +5,17 @@ Samuel Cauchon - 260587509
 
 ## 0. Parallelization
 
-In both labs, the parallelization strategy is to split the problem (the image for lab 1 or the drum for lab 2) into sub problems (blocks) where each subproblems would be solved by a unit (processes and threads in the previous lab). Here, we used CUDA which uses the graphic card to process the data. In order to make both labs paralellized using CUDA, we created a function called `findBestGridAndBlockDims2D` in `common.h`. The goal of this function is to find the best block partition given a 2D array. Using those partitions, we managed to split each of our subproblems and process it on each thread block of our graphic card.
+In both labs, the parallelization strategy is to split the problem (the image for lab 1 or the drum for lab 2) into sub problems (blocks) where each subproblems would be solved by a unit (processes and threads in the previous labs). Here, we used CUDA which uses the GPU to process the data. In order to make both labs parallelized using CUDA, we created a function called `findBestGridAndBlockDims2D` in `common.h`. The goal of this function is to find the best block partition given a 2D array. Using those partitions, we managed to split each of our subproblems and processed it on each thread block of our GPU.
 
 ## 1. Image transformations
 
 ### 1.0. CUDA implementation
 
-The CUDA implementation we designed for this lab also included a texture object in `transform.cu`. There area few advantages of using this type of object. First of all, we make a better use of the cache, which in turn makes our program more efficient and faster. The second advantage is that it creates a better modeling of the input data since it was designed to work with images.
+The CUDA implementation we designed for this lab also included a texture object in `transform.cu`. A texture object makes us acces a 2D array instead of a 1D array as the input for the GPU. There area few advantages of using this type of object. First of all, we make a better use of the cache, which in turn makes our program more efficient and faster. The second advantage is that it creates a better modeling of the input data since it was designed to work with images.
 
 ### 1.1. Performance analysis
 
-For the timing analysis of each type of conversion, we used CUDA event timming. This insured to only get the time that the GPU utilized to process the data. Furthermore, we also tested each conversion using 2 different GPUs to show the performance of both and draw a conclusion on the performance of a CUDA paralellized program and the graphic card used to run the program.
+For the timing analysis of each type of conversion, we used CUDA event timming. This insured to only get the time that the GPU utilized to process the data. Furthermore, we also tested each conversion using 2 different GPUs to show the performance of both and draw a conclusion on the performance of a CUDA paralellized program and GPU used to run the program. The 2 GPU used are the NVIDIA Gefore GTX 680 and the NVIDIA Tesla K40c.
 
 ### 1.2. Rectification
 
@@ -70,8 +70,7 @@ In the CUDA implementation of lab 2, instead of using a texture object, we used 
 
 ### 2.1. Performance analysis
 
-We also used two differenet GPU for this lab and analyzed each performance with respect to a 4 by 4 grid and a 512 by 512 grid. 
-For the timing analysis, as done in lab 2, we used the `time` bash command to measure our time.
+We also used two differenet GPUs for this lab and analyzed each performance with respect to a 4 by 4 grid and a 512 by 512 grid. For the timing analysis, as done in lab 2, we used the `time` bash command to measure our time.
 
 ### 2.2. 4 by 4 grid
 
@@ -79,8 +78,6 @@ For the timing analysis, as done in lab 2, we used the `time` bash command to me
 |---------------|--------------|
 |GeForce GTX 680|0.314         |
 |Tesla K40c     |0.383         |
-
-Very small simulation, how does that affect the performance difference. 21.97%
 
 For a very small simulation like a 4 by4 grid, the timming a pretty similar. We notice that the Tesla K40x is 21.97% slower than the GeForce GTX 680. However, the size grid makes it probable that the overhead of the K40c is responsible for its slowness compared to the GTX 680.
 
@@ -91,6 +88,8 @@ For a very small simulation like a 4 by4 grid, the timming a pretty similar. We 
 |GeForce GTX 680|1.039         |
 |Tesla K40c     |0.964         |
 
-Larger simulation, how does that affect the performance difference.
-
 Here we see that for a larger simulation such as a 512 by 512 grid, the Tesla K40c outperforms the GTX 680 by a slight 7.22%. WE can conclude that both GPU performs approximately the same way on a larger scale.
+
+## 3. Conclusion
+
+From the results that we gathered in both labs using CUDA, we can conclude that, overall, both GPUs have the same performance for all tests. A reason why this happened might be due to the fact that the programs that we developped are not complex enough and do not proces enough data. The maximum difference in processing time for both GPUs is 34.74%. However, the difference is in the fraction of a millisecond which is not significiant. A reason why this happened might be due to the fact that the programs that we developped are not complex enough and do not proces enough data. Therefore, both GPUs, using small programs such has the recitfication, pooling and convolution of an image and the simulation of a drum beat, performs simlilarly. 
