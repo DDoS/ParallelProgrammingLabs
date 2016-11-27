@@ -5,7 +5,7 @@ Samuel Cauchon - 260587509
 
 ## 0. Parallelization
 
-In both labs, the parallelization strategy is to split the problem (the image for lab 1 or the drum for lab 2) into sub problems (blocks) where each subproblem would be solved by a unit (threads and processes in the previous labs). Here, we used CUDA, which uses the GPU to process the data. In order to make both labs parallelized using CUDA, we created a function called `findBestGridAndBlockDims2D` in `common.h`. The goal of this function is to find the best block and grid partitions given the size of a 2D array, so that the GPU is used to its maximum. The CUDA API provides a function `cudaOccupancyMaxPotentialBlockSize` to help perform this estimation for the GPU in use. Every subproblem block is processed  on a thread block on the GPU, such that we have one thread per pixel in lab 1, and 1 per finite element in lab 2.
+In both labs, the parallelization strategy is to split the problem (the image for lab 1 or the drum for lab 2) into sub problems (blocks) where each subproblem would be solved by a unit (threads and processes in the previous labs). Here, we used CUDA, which uses the GPU to process the data. In order to make both labs parallelized using CUDA, we created a function called `findBestGridAndBlockDims2D` in `common.h`. The goal of this function is to find the best block and grid partitions given the size of a 2D array, so that the GPU is used to its maximum. The CUDA API provides a function `cudaOccupancyMaxPotentialBlockSize` to help perform this estimation for the GPU in use. Every subproblem block is processed  on a thread block on the GPU, such that we have one thread per pixel in lab 1, and one per finite element in lab 2.
 
 ## 1. Image transformations
 
