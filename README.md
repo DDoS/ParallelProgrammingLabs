@@ -7,3 +7,4 @@ Licensed under [MIT](LICENSE.txt).
 ##Group 32##
 
 - [Aleksi Sapon](https://github.com/DDoS)
+- [Samuel Cauchon](https://github.com/Samuel-Cauchon)
